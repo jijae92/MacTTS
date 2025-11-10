@@ -147,18 +147,30 @@ class LocalKoreanTTSEngine:
 
                 asyncio.run(_synthesize())
 
-                # Convert MP3 to WAV using pydub
-                audio = AudioSegment.from_mp3(tmp_path)
-                audio.export(str(output_path), format='wav')
+                # Convert MP3 to WAV using pydub (requires ffmpeg)
+                try:
+                    audio = AudioSegment.from_mp3(tmp_path)
+                    audio.export(str(output_path), format='wav')
+                except Exception as conv_err:
+                    # Clean up temp file before raising
+                    os.unlink(tmp_path)
+                    raise Exception(
+                        f"MP3 to WAV conversion failed. ffmpeg is required!\n"
+                        f"Install ffmpeg:\n"
+                        f"  macOS: brew install ffmpeg\n"
+                        f"  Linux: sudo apt install ffmpeg\n"
+                        f"  Windows: Download from ffmpeg.org\n"
+                        f"Error: {conv_err}"
+                    )
 
                 # Clean up temporary MP3 file
                 os.unlink(tmp_path)
 
-                print(f"Generated speech using edge-tts ({edge_voice})")
+                print(f"✓ Generated speech using edge-tts ({edge_voice})")
                 return output_path
             except Exception as e:
-                print(f"Warning: edge-tts synthesis failed: {e}")
-                print("Falling back to next available engine...")
+                print(f"✗ edge-tts synthesis failed: {e}")
+                print("→ Falling back to next available engine...")
                 # Fall through to next engine
 
         # Try gTTS as fallback (good quality)
@@ -173,18 +185,30 @@ class LocalKoreanTTSEngine:
                     tmp_path = tmp_file.name
                     tts_obj.save(tmp_path)
 
-                # Convert MP3 to WAV using pydub
-                audio = AudioSegment.from_mp3(tmp_path)
-                audio.export(str(output_path), format='wav')
+                # Convert MP3 to WAV using pydub (requires ffmpeg)
+                try:
+                    audio = AudioSegment.from_mp3(tmp_path)
+                    audio.export(str(output_path), format='wav')
+                except Exception as conv_err:
+                    # Clean up temp file before raising
+                    os.unlink(tmp_path)
+                    raise Exception(
+                        f"MP3 to WAV conversion failed. ffmpeg is required!\n"
+                        f"Install ffmpeg:\n"
+                        f"  macOS: brew install ffmpeg\n"
+                        f"  Linux: sudo apt install ffmpeg\n"
+                        f"  Windows: Download from ffmpeg.org\n"
+                        f"Error: {conv_err}"
+                    )
 
                 # Clean up temporary MP3 file
                 os.unlink(tmp_path)
 
-                print(f"Generated speech using gTTS")
+                print(f"✓ Generated speech using gTTS")
                 return output_path
             except Exception as e:
-                print(f"Warning: gTTS synthesis failed: {e}")
-                print("Falling back to next available engine...")
+                print(f"✗ gTTS synthesis failed: {e}")
+                print("→ Falling back to next available engine...")
                 # Fall through to next engine
 
         # Try Coqui TTS as fallback
@@ -204,7 +228,11 @@ class LocalKoreanTTSEngine:
                 # Fall through to placeholder generation
 
         # Fallback to placeholder audio
-        print("Generating placeholder audio (sine wave)")
+        print("⚠️  WARNING: Generating placeholder audio (sine wave) - NOT real speech!")
+        print("⚠️  All TTS engines failed. Please install ffmpeg:")
+        print("   macOS: brew install ffmpeg")
+        print("   Linux: sudo apt install ffmpeg")
+        print("   Windows: Download from ffmpeg.org")
         buffer = _text_to_wave(text, sample_rate=voice.sample_rate)
         with wave.open(str(output_path), "wb") as wav_file:
             wav_file.setnchannels(1)

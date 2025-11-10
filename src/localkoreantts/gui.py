@@ -424,6 +424,332 @@ QStatusBar {
 }
 """
 
+# Dark mode stylesheet
+DARK_STYLESHEET = """
+QMainWindow {
+    background-color: #1e1e1e;
+}
+
+QTabWidget::pane {
+    border: 1px solid #3c3c3c;
+    border-radius: 8px;
+    background: #2d2d2d;
+    padding: 10px;
+}
+
+QTabBar::tab {
+    background: #3c3c3c;
+    border: none;
+    padding: 10px 20px;
+    margin-right: 2px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    font-size: 11pt;
+    font-weight: 500;
+    color: #e0e0e0;
+}
+
+QTabBar::tab:selected {
+    background: #2d2d2d;
+    color: #42a5f5;
+}
+
+QTabBar::tab:hover {
+    background: #4a4a4a;
+}
+
+QGroupBox {
+    font-size: 11pt;
+    font-weight: 600;
+    border: 2px solid #3c3c3c;
+    border-radius: 8px;
+    margin-top: 12px;
+    padding-top: 18px;
+    background: #252525;
+    color: #e0e0e0;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 15px;
+    padding: 0 8px;
+    color: #42a5f5;
+}
+
+QPushButton {
+    background-color: #1976D2;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 11pt;
+    font-weight: 500;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background-color: #2196F3;
+}
+
+QPushButton:pressed {
+    background-color: #0D47A1;
+}
+
+QPushButton:disabled {
+    background-color: #424242;
+    color: #757575;
+}
+
+QPushButton#browseButton {
+    background-color: #616161;
+    padding: 8px 16px;
+}
+
+QPushButton#browseButton:hover {
+    background-color: #757575;
+}
+
+QPushButton#generateButton {
+    background-color: #388E3C;
+    font-size: 12pt;
+    padding: 12px 32px;
+    min-height: 25px;
+}
+
+QPushButton#generateButton:hover {
+    background-color: #4CAF50;
+}
+
+QPushButton#playButton {
+    background-color: #F57C00;
+    padding: 8px 16px;
+}
+
+QPushButton#playButton:hover {
+    background-color: #FF9800;
+}
+
+QTextEdit, QPlainTextEdit {
+    border: 2px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 11pt;
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+QTextEdit:focus, QPlainTextEdit:focus {
+    border: 2px solid #42a5f5;
+}
+
+QLineEdit {
+    border: 2px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 10pt;
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+QLineEdit:focus {
+    border: 2px solid #42a5f5;
+}
+
+QComboBox {
+    border: 2px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 10pt;
+    background: #2d2d2d;
+    color: #e0e0e0;
+    min-width: 100px;
+}
+
+QComboBox:hover {
+    border: 2px solid #42a5f5;
+}
+
+QComboBox::drop-down {
+    border: none;
+    padding-right: 8px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    selection-background-color: #42a5f5;
+    border: 1px solid #3c3c3c;
+}
+
+QSpinBox, QDoubleSpinBox {
+    border: 2px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 10pt;
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 2px solid #42a5f5;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid #424242;
+    height: 6px;
+    background: #3c3c3c;
+    border-radius: 3px;
+}
+
+QSlider::handle:horizontal {
+    background: #42a5f5;
+    border: none;
+    width: 18px;
+    height: 18px;
+    margin: -6px 0;
+    border-radius: 9px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #2196F3;
+}
+
+QProgressBar {
+    border: 2px solid #3c3c3c;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 10pt;
+    font-weight: 500;
+    background: #2d2d2d;
+    color: #e0e0e0;
+    min-height: 24px;
+}
+
+QProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #388E3C, stop:1 #66BB6A);
+    border-radius: 4px;
+}
+
+QLabel {
+    font-size: 10pt;
+    color: #e0e0e0;
+}
+
+QLabel#titleLabel {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #42a5f5;
+}
+
+QLabel#subtitleLabel {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #9e9e9e;
+}
+
+QLabel#infoLabel {
+    font-size: 9pt;
+    color: #9e9e9e;
+    font-style: italic;
+}
+
+QCheckBox {
+    font-size: 10pt;
+    spacing: 8px;
+    color: #e0e0e0;
+}
+
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid #757575;
+    background: #2d2d2d;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #42a5f5;
+    border-color: #42a5f5;
+}
+
+QStatusBar {
+    background: #252525;
+    border-top: 1px solid #3c3c3c;
+    font-size: 9pt;
+    padding: 4px;
+    color: #e0e0e0;
+}
+
+QScrollBar:vertical {
+    background: #2d2d2d;
+    width: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background: #616161;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #757575;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+QScrollBar:horizontal {
+    background: #2d2d2d;
+    height: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #616161;
+    border-radius: 6px;
+    min-width: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #757575;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+"""
+
+
+def _is_dark_mode() -> bool:
+    """Detect if system is in dark mode."""
+    try:
+        # macOS dark mode detection
+        if IS_MAC:
+            import subprocess
+            result = subprocess.run(
+                ['defaults', 'read', '-g', 'AppleInterfaceStyle'],
+                capture_output=True,
+                text=True
+            )
+            return result.returncode == 0 and 'Dark' in result.stdout
+
+        # Linux/Windows: Try to detect from Qt palette
+        app = QtWidgets.QApplication.instance()
+        if app:
+            palette = app.palette()
+            bg_color = palette.color(QtGui.QPalette.Window)
+            # If background is dark (luminance < 128)
+            return bg_color.lightness() < 128
+    except:
+        pass
+
+    return False
+
+
 # Import dialog-tts modules if available
 _DIALOG_TTS_AVAILABLE = False
 try:
@@ -450,8 +776,11 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("🎙️ Local Korean TTS")
         self.setMinimumSize(900, 700)
 
-        # Apply modern stylesheet
-        self.setStyleSheet(MODERN_STYLESHEET)
+        # Apply stylesheet based on system theme
+        if _is_dark_mode():
+            self.setStyleSheet(DARK_STYLESHEET)
+        else:
+            self.setStyleSheet(MODERN_STYLESHEET)
 
         self._engine_factory = engine_factory or LocalKoreanTTSEngine
         self._config = (path_config or resolve_path_config()).ensure()
@@ -787,11 +1116,18 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         layout.addWidget(QtWidgets.QLabel("Log:"))
         layout.addWidget(self.dialog_log_view)
 
-        return widget
+        # Wrap in scroll area
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidget(widget)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        return scroll_area
 
     def _build_settings_tab(self) -> QtWidgets.QWidget:
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QFormLayout(widget)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
 
         self.model_path_edit = QtWidgets.QLineEdit(str(self._config.model_dir))
         model_button = QtWidgets.QPushButton("Browse…")
@@ -807,7 +1143,12 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         ffmpeg_row = self._row_widget(self.ffmpeg_path_edit, ffmpeg_button)
         layout.addRow("FFmpeg Binary", ffmpeg_row)
 
-        return widget
+        # Wrap in scroll area
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidget(widget)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        return scroll_area
 
     @staticmethod
     def _row_widget(edit: QtWidgets.QWidget, button: QtWidgets.QWidget) -> QtWidgets.QWidget:
@@ -1019,15 +1360,29 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.generate_btn.setEnabled(has_text and has_output)
 
     def _notify_ffmpeg_missing(self) -> None:
-        if self._engine.ffmpeg_path:
+        # Check if ffmpeg is available
+        import shutil
+        if self._engine.ffmpeg_path or shutil.which('ffmpeg'):
             return
+
+        # Show warning message
         message = (
-            "FFmpeg not detected. Install via 'brew install ffmpeg' or set "
-            "LK_TTS_FFMPEG_BIN/--ffmpeg-path."
+            "⚠️  FFmpeg가 설치되지 않았습니다!\n\n"
+            "FFmpeg가 없으면 실제 TTS 음성 대신 사인파 테스트 톤만 생성됩니다.\n\n"
+            "FFmpeg 설치 방법:\n"
+            "  • macOS: brew install ffmpeg\n"
+            "  • Linux: sudo apt install ffmpeg\n"
+            "  • Windows: ffmpeg.org에서 다운로드\n\n"
+            "설치 후 GUI를 재시작하세요."
         )
-        self._append_log(message)
-        # Don't show popup warning - just log it
-        # Users can see the message in the log if needed
+        self._append_log("⚠️  FFmpeg not detected - TTS will not work!")
+
+        # Show popup warning so users don't miss it
+        QtWidgets.QMessageBox.warning(
+            self,
+            "FFmpeg 필요",
+            message
+        )
 
     def _platform_shortcut(self, key: str) -> QtGui.QKeySequence:
         modifier = "Meta+" if IS_MAC else "Ctrl+"
