@@ -39,38 +39,60 @@ try:
     AudioSegment = AudioSegmentClass
     _gtts_available = True
 
-    # Configure pydub to find ffmpeg
-    # Check multiple possible locations
-    ffmpeg_paths = [
+    # Configure pydub to find ffmpeg - CRITICAL for TTS to work!
+    # Try multiple locations in order of likelihood
+    ffmpeg_candidates = [
         shutil.which('ffmpeg'),  # System PATH
-        '/opt/homebrew/bin/ffmpeg',  # Homebrew Apple Silicon
+        '/opt/homebrew/bin/ffmpeg',  # Homebrew Apple Silicon (most common)
         '/usr/local/bin/ffmpeg',  # Homebrew Intel
         '/opt/local/bin/ffmpeg',  # MacPorts
+        '/usr/bin/ffmpeg',  # Linux/macOS system
     ]
 
     # Also check if running from a bundled app
     if getattr(sys, 'frozen', False):
         # Running in PyInstaller bundle
         bundle_dir = Path(sys._MEIPASS)
-        ffmpeg_paths.insert(0, str(bundle_dir / 'ffmpeg'))
+        ffmpeg_candidates.insert(0, str(bundle_dir / 'ffmpeg'))
 
     ffmpeg_found = None
-    for path in ffmpeg_paths:
-        if path and Path(path).exists():
-            ffmpeg_found = path
+    for candidate in ffmpeg_candidates:
+        if candidate and Path(candidate).exists():
+            ffmpeg_found = candidate
             break
 
     if ffmpeg_found:
+        # Set all possible pydub ffmpeg paths
         AudioSegment.converter = ffmpeg_found
         AudioSegment.ffmpeg = ffmpeg_found
-        AudioSegment.ffprobe = ffmpeg_found.replace('ffmpeg', 'ffprobe')
-        print(f"✓ Configured pydub to use ffmpeg at: {ffmpeg_found}")
-    else:
-        print("⚠️  Warning: ffmpeg not found in common locations")
-        print("   pydub will try to use system ffmpeg")
 
-except ImportError:
-    pass
+        # Also try to set ffprobe
+        ffprobe_path = ffmpeg_found.replace('ffmpeg', 'ffprobe')
+        if Path(ffprobe_path).exists():
+            AudioSegment.ffprobe = ffprobe_path
+
+        print(f"✓ Configured pydub to use ffmpeg: {ffmpeg_found}")
+
+        # Set environment variable as backup
+        os.environ['FFMPEG_BINARY'] = ffmpeg_found
+    else:
+        print("=" * 60)
+        print("⚠️  WARNING: ffmpeg NOT FOUND!")
+        print("=" * 60)
+        print("Checked locations:")
+        for candidate in ffmpeg_candidates:
+            if candidate:
+                print(f"  ✗ {candidate}")
+        print()
+        print("TTS will generate sine wave test tones instead of speech!")
+        print()
+        print("Install ffmpeg:")
+        print("  macOS: brew install ffmpeg")
+        print("  Linux: sudo apt install ffmpeg")
+        print("=" * 60)
+
+except ImportError as e:
+    print(f"Note: gTTS not available: {e}")
 
 # Fall back to Coqui TTS if others not available
 TTS = None

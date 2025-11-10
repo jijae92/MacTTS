@@ -756,24 +756,66 @@ DialogTTSEngine = None
 SpeakerConfig = None
 apply_speaker_name_mapping = None
 
+print("=" * 60)
+print("Loading Dialog-TTS features...")
+print("=" * 60)
+
 try:
     # Add dialog-tts directory to path
     dialog_tts_dir = Path(__file__).parent.parent.parent / "dialog-tts"
-    if dialog_tts_dir.exists():
-        sys.path.insert(0, str(dialog_tts_dir))
-        # Import from dialog_tts.py file directly
-        from dialog_tts import DialogTTSEngine as DTTSEngine
-        from dialog_tts import SpeakerConfig as SConfig
-        from dialog_tts import apply_speaker_name_mapping as apply_mapping
+    print(f"Checking dialog-tts directory: {dialog_tts_dir}")
 
-        DialogTTSEngine = DTTSEngine
-        SpeakerConfig = SConfig
-        apply_speaker_name_mapping = apply_mapping
-        _DIALOG_TTS_AVAILABLE = True
-        print("✓ Dialog-TTS features loaded successfully")
+    if not dialog_tts_dir.exists():
+        print(f"✗ dialog-tts directory not found!")
+        print(f"  Expected: {dialog_tts_dir}")
+        print(f"  Create it or clone the dialog-tts repository")
+    else:
+        print(f"✓ dialog-tts directory found")
+
+        # Check for required file
+        dialog_tts_py = dialog_tts_dir / "dialog_tts.py"
+        if not dialog_tts_py.exists():
+            print(f"✗ dialog_tts.py not found: {dialog_tts_py}")
+        else:
+            print(f"✓ dialog_tts.py found")
+
+            # Add to path
+            sys.path.insert(0, str(dialog_tts_dir))
+            print(f"✓ Added to sys.path")
+
+            # Import from dialog_tts.py file directly
+            print("Importing DialogTTSEngine...")
+            from dialog_tts import DialogTTSEngine as DTTSEngine
+            print("Importing SpeakerConfig...")
+            from dialog_tts import SpeakerConfig as SConfig
+            print("Importing apply_speaker_name_mapping...")
+            from dialog_tts import apply_speaker_name_mapping as apply_mapping
+
+            DialogTTSEngine = DTTSEngine
+            SpeakerConfig = SConfig
+            apply_speaker_name_mapping = apply_mapping
+            _DIALOG_TTS_AVAILABLE = True
+
+            print("=" * 60)
+            print("✓ Dialog-TTS features loaded successfully!")
+            print("  대화 형식 탭이 활성화됩니다")
+            print("=" * 60)
+
 except Exception as e:
-    print(f"Note: Dialog-TTS features not available: {e}")
-    print("  대화 형식 탭은 표시되지 않습니다.")
+    print("=" * 60)
+    print("✗ Dialog-TTS features not available")
+    print("=" * 60)
+    print(f"Error: {e}")
+    print(f"Error type: {type(e).__name__}")
+
+    # Show traceback for debugging
+    import traceback
+    print("\nFull error traceback:")
+    traceback.print_exc()
+
+    print("\n대화 형식 탭은 표시되지 않습니다.")
+    print("혼자 말하기 모드만 사용 가능합니다.")
+    print("=" * 60)
 
 
 class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
