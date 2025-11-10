@@ -1,0 +1,19 @@
+# Dialog TTS Requirements
+
+# Core dependencies
+pydub>=0.25.1          # Audio processing
+PyYAML>=6.0            # YAML config parsing
+numpy>=1.24.0          # Numerical operations
+
+# macOS TTS backend (optional but recommended on macOS)
+pyobjc-framework-Cocoa>=9.0; sys_platform == 'darwin'  # NSSpeechSynthesizer access
+
+# XTTS backend (optional, for voice cloning)
+# TTS>=0.22.0          # Coqui TTS - uncomment to enable XTTS support
+
+# Development dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Note: ffmpeg is required for audio format conversion
+# Install via: brew install ffmpeg (macOS)

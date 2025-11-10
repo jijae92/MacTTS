@@ -1,0 +1,25 @@
+# Speaker configuration for XTTS v2 engine
+# XTTS uses reference audio files for voice cloning
+# Reference audio should be 6-24 seconds long for best results
+
+A:
+  ref_wav: "refs/speaker_A.wav"  # Path to reference audio (6-24 seconds recommended)
+  lang: "ko"                      # Language code (ko, en, es, fr, de, it, pt, etc.)
+  speed: 1.00                     # Speaking speed multiplier (1.0 = normal)
+  gain_db: 0.0                    # Volume adjustment in dB
+  pan: -0.35                      # Stereo pan (-1.0 = full left, 0.0 = center, +1.0 = full right)
+  aliases:
+    - "화자A"
+    - "Agent"
+    - "상담원"
+
+B:
+  ref_wav: "refs/speaker_B.wav"
+  lang: "ko"
+  speed: 0.98
+  gain_db: -1.0
+  pan: +0.35
+  aliases:
+    - "화자B"
+    - "Customer"
+    - "고객"

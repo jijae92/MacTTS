@@ -40,6 +40,7 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.voice_combo: QtWidgets.QComboBox
         self.output_edit: QtWidgets.QLineEdit
         self.generate_btn: QtWidgets.QPushButton
+        self.progress_bar: QtWidgets.QProgressBar
         self.log_view: QtWidgets.QPlainTextEdit
         self.model_path_edit: QtWidgets.QLineEdit
         self.ffmpeg_path_edit: QtWidgets.QLineEdit
@@ -92,6 +93,12 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.generate_btn.setEnabled(False)
         self.generate_btn.clicked.connect(self._handle_generate)
         layout.addWidget(self.generate_btn)
+
+        # Add progress bar
+        self.progress_bar = QtWidgets.QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setTextVisible(True)
+        layout.addWidget(self.progress_bar)
 
         describe_btn = QtWidgets.QPushButton("Describe Runtime")
         describe_btn.clicked.connect(self._describe_runtime)
@@ -202,17 +209,51 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
             self._show_warning("Missing output", "Select an output file.")
             return
         destination = Path(destination_text).expanduser()
+
+        # Show progress bar and disable button
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFormat("Initializing...")
+        self.generate_btn.setEnabled(False)
+        QtWidgets.QApplication.processEvents()
+
         try:
+            # Update progress: preparing
+            self.progress_bar.setValue(10)
+            self.progress_bar.setFormat("Preparing text...")
+            self._append_log(f"Starting synthesis for {len(text)} characters")
+            QtWidgets.QApplication.processEvents()
+
+            # Update progress: synthesizing
+            self.progress_bar.setValue(30)
+            self.progress_bar.setFormat("Synthesizing speech...")
+            QtWidgets.QApplication.processEvents()
+
             result = self._engine.synthesize_to_file(
                 text=text,
                 voice_name=self.voice_combo.currentText(),
                 output_path=destination,
             )
+
+            # Update progress: saving
+            self.progress_bar.setValue(90)
+            self.progress_bar.setFormat("Saving file...")
+            QtWidgets.QApplication.processEvents()
+
+            # Complete
+            self.progress_bar.setValue(100)
+            self.progress_bar.setFormat("Complete!")
+            self._append_log(f"Wrote {result}")
+            self._show_info("Success", f"Saved to {result}")
+
         except Exception as exc:  # pragma: no cover - GUI level exception
             self._show_error("Generation failed", str(exc))
-            return
-        self._append_log(f"Wrote {result}")
-        self._show_info("Success", f"Saved to {result}")
+        finally:
+            # Hide progress bar and re-enable button
+            self.generate_btn.setEnabled(True)
+            # Keep progress bar visible for a moment to show completion
+            QtCore.QTimer.singleShot(2000, lambda: self.progress_bar.setVisible(False))
 
     def _describe_runtime(self) -> None:
         lines = _voice_lines(self._engine.voices())

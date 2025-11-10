@@ -1,0 +1,13 @@
+#!/bin/bash
+# Dialog TTS launcher script
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+EXEC="$SCRIPT_DIR/dist/dialog-tts/dialog-tts"
+
+if [ ! -f "$EXEC" ]; then
+    echo "Error: Executable not found at $EXEC"
+    echo "Please run: pyinstaller --clean dialog_tts.spec"
+    exit 1
+fi
+
+exec "$EXEC" "$@"

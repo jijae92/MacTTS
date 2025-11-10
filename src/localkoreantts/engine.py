@@ -57,13 +57,14 @@ class VoiceProfile:
     edge_voice: Optional[str] = None  # edge-tts voice name
 
 
-# Updated voice profiles with edge-tts support
+# Updated voice profiles with edge-tts support (Natural, high-quality Korean voices)
 AVAILABLE_VOICES: List[VoiceProfile] = [
     VoiceProfile(name="standard-female", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-SunHiNeural"),
     VoiceProfile(name="standard-male", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-InJoonNeural"),
-    VoiceProfile(name="lite", locale="ko-KR", sample_rate=16000, edge_voice="ko-KR-JiMinNeural"),
+    VoiceProfile(name="natural-female", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-JiMinNeural"),
+    VoiceProfile(name="natural-male", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-HyunsuNeural"),
     VoiceProfile(name="professional-female", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-SeoHyeonNeural"),
-    VoiceProfile(name="professional-male", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-HyunsuNeural"),
+    VoiceProfile(name="professional-male", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-GookMinNeural"),
 ]
 
 
@@ -83,9 +84,9 @@ class LocalKoreanTTSEngine:
         self._use_gtts = _gtts_available
         self._use_coqui = False
 
-        # Prefer edge-tts (best quality for Korean)
+        # Prefer edge-tts (best quality for Korean with natural prosody)
         if self._use_edge_tts:
-            print("Using Microsoft Edge TTS (edge-tts) for high-quality speech synthesis")
+            print("Using Microsoft Edge TTS (edge-tts) for natural, high-quality Korean speech synthesis")
         # Fall back to gTTS (good quality, works offline)
         elif self._use_gtts:
             print("Using Google TTS (gTTS) for speech synthesis")
@@ -132,9 +133,11 @@ class LocalKoreanTTSEngine:
                 # Get the edge voice for this profile
                 edge_voice = voice.edge_voice or "ko-KR-SunHiNeural"
 
-                # Run async synthesis
+                # Run async synthesis with rate adjustment for more natural speech
+                # +0% is default, -10% is slightly slower (more clear), +10% is faster
                 async def _synthesize():
-                    communicate = edge_tts.Communicate(text, edge_voice)
+                    # Use +0% rate for natural speed, can adjust with rate="+5%" for slightly faster
+                    communicate = edge_tts.Communicate(text, edge_voice, rate="+0%", volume="+0%")
                     await communicate.save(tmp_path)
 
                 asyncio.run(_synthesize())

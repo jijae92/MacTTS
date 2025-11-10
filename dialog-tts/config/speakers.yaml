@@ -1,0 +1,24 @@
+# Speaker configuration for macOS TTS engine
+# Each speaker can have different voice, rate, gain, and pan settings
+
+A:
+  voice_hint: "ko_KR"      # macOS voice hint (searches for voices containing this string)
+  voice_name: "Yuna"       # Specific voice name (optional, falls back to hint-based search)
+  rate_wpm: 180            # Speaking rate in words per minute
+  gain_db: 0.0             # Volume adjustment in dB (0 = no change, negative = quieter, positive = louder)
+  pan: -0.35               # Stereo pan (-1.0 = full left, 0.0 = center, +1.0 = full right)
+  aliases:                 # Alternative names for this speaker
+    - "화자A"
+    - "Agent"
+    - "상담원"
+
+B:
+  voice_hint: "ko_KR"
+  voice_name: "Jinho"
+  rate_wpm: 170
+  gain_db: -1.0
+  pan: +0.35
+  aliases:
+    - "화자B"
+    - "Customer"
+    - "고객"
