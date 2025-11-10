@@ -70,11 +70,22 @@ try:
         ffprobe_path = ffmpeg_found.replace('ffmpeg', 'ffprobe')
         if Path(ffprobe_path).exists():
             AudioSegment.ffprobe = ffprobe_path
+            # Set environment variable for ffprobe (needed by dialog-tts)
+            os.environ['FFPROBE_BINARY'] = ffprobe_path
+            print(f"✓ Configured pydub to use ffmpeg: {ffmpeg_found}")
+            print(f"✓ Configured ffprobe: {ffprobe_path}")
+        else:
+            print(f"✓ Configured pydub to use ffmpeg: {ffmpeg_found}")
+            print(f"⚠️  Warning: ffprobe not found at {ffprobe_path}")
 
-        print(f"✓ Configured pydub to use ffmpeg: {ffmpeg_found}")
-
-        # Set environment variable as backup
+        # Set environment variables as backup (for subprocess calls)
         os.environ['FFMPEG_BINARY'] = ffmpeg_found
+
+        # Also add directory to PATH for subprocess commands
+        ffmpeg_dir = str(Path(ffmpeg_found).parent)
+        if ffmpeg_dir not in os.environ.get('PATH', ''):
+            os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
+            print(f"✓ Added {ffmpeg_dir} to PATH")
     else:
         print("=" * 60)
         print("⚠️  WARNING: ffmpeg NOT FOUND!")
