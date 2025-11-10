@@ -816,14 +816,25 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
 
         self._tabs = QtWidgets.QTabWidget()
         self._tabs.addTab(self._build_synthesis_tab(), "🎤 혼자 말하기")
+
+        # Log dialog-tts availability
         if _DIALOG_TTS_AVAILABLE:
             self._tabs.addTab(self._build_dialog_tab(), "💬 대화 형식")
+            print("✓ 대화 형식 탭이 추가되었습니다")
+        else:
+            print("✗ 대화 형식 탭을 사용할 수 없습니다 (dialog-tts import 실패)")
+            print("  진단: python diagnose.py 실행")
+
         self._tabs.addTab(self._build_settings_tab(), "⚙️ 설정")
         self.setCentralWidget(self._tabs)
 
         self._setup_menu_bar()
         self._setup_status_bar()
         self._append_log("✓ 준비 완료")
+        if _DIALOG_TTS_AVAILABLE:
+            self._append_log("✓ 대화 형식 기능 사용 가능")
+        else:
+            self._append_log("⚠️  대화 형식 기능 사용 불가 - python diagnose.py 실행")
         self._notify_ffmpeg_missing()
 
     def _build_engine(self) -> LocalKoreanTTSEngine:
