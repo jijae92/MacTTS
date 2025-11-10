@@ -474,6 +474,25 @@ jobs:
           path: dist/localkoreantts-gui/LocalKoreanTTS.app
 ```
 
+## Linux 테스트 빌드
+
+macOS가 없는 환경에서 코드 검증을 위해 Linux 실행 파일을 빌드할 수 있습니다.
+
+```bash
+# Linux 테스트 빌드 실행
+python3 build_linux_test.py
+```
+
+**주의사항:**
+- 이 빌드는 코드 검증용이며, macOS .app 번들을 생성하지 않습니다
+- 생성된 실행 파일은 Linux에서만 작동합니다
+- 실제 macOS 앱 배포를 위해서는 macOS에서 빌드해야 합니다
+
+**빌드 결과:**
+- 위치: `dist/LocalKoreanTTS-Linux`
+- 크기: 약 300MB
+- 형식: ELF 64-bit executable
+
 ## 추가 리소스
 
 - [PyInstaller 공식 문서](https://pyinstaller.org/)
