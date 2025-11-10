@@ -51,8 +51,6 @@ source .venv/bin/activate
 
 ### 2. 빌드 실행
 
-#### 메인 GUI 앱 빌드
-
 ```bash
 # 빌드 스크립트 실행
 chmod +x build_macos.sh
@@ -66,34 +64,14 @@ python -m PyInstaller --clean --noconfirm mac_app.spec
 - 앱 위치: `dist/localkoreantts-gui/LocalKoreanTTS.app`
 - 앱 크기: 약 150-200 MB
 
-#### Dialog TTS GUI 앱 빌드
-
-```bash
-cd dialog-tts
-
-# 빌드 스크립트 실행
-chmod +x build_dialog_tts_gui.sh
-./build_dialog_tts_gui.sh
-
-# 또는 수동 빌드
-python -m PyInstaller --clean --noconfirm dialog_tts_gui.spec
-```
-
-빌드 완료 후:
-- 앱 위치: `dist/DialogTTS.app`
-- 앱 크기: 약 120-150 MB
-
 ### 3. 앱 설치
 
 ```bash
-# 메인 GUI
+# Applications 폴더에 복사
 cp -R dist/localkoreantts-gui/LocalKoreanTTS.app /Applications/
 
-# Dialog TTS GUI
-cp -R dialog-tts/dist/DialogTTS.app /Applications/
-
 # Spotlight에서 실행
-# "LocalKoreanTTS" 또는 "DialogTTS" 검색
+# "LocalKoreanTTS" 검색
 ```
 
 ## 상세 빌드 절차
@@ -112,14 +90,11 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install pyinstaller
-
-# 4. Dialog-TTS 의존성도 설치
-pip install -r dialog-tts/requirements.txt
 ```
 
 ### 2. PyInstaller Spec 파일 이해
 
-#### `mac_app.spec` (메인 GUI)
+`mac_app.spec` 파일에는 다음과 같은 설정이 포함되어 있습니다:
 
 ```python
 # 주요 설정
@@ -130,18 +105,7 @@ pip install -r dialog-tts/requirements.txt
 - Excludes: PyQt5, PyQt6, TTS, torch (크기 최적화)
 ```
 
-#### `dialog-tts/dialog_tts_gui.spec` (Dialog TTS GUI)
-
-```python
-# 주요 설정
-- Entry Point: dialog_tts_gui.py
-- App Name: DialogTTS.app
-- Hidden Imports: PySide6, edge-tts, pydub, PyYAML
-```
-
 ### 3. 빌드 실행
-
-#### 메인 GUI 빌드
 
 ```bash
 # 이전 빌드 정리
@@ -154,38 +118,19 @@ python -m PyInstaller --clean --noconfirm mac_app.spec
 ./build_macos.sh
 ```
 
-#### Dialog TTS GUI 빌드
-
-```bash
-cd dialog-tts
-
-# 이전 빌드 정리
-rm -rf build/dialog_tts_gui dist/DialogTTS.app
-
-# 빌드 실행
-python -m PyInstaller --clean --noconfirm dialog_tts_gui.spec
-
-# 또는 빌드 스크립트 사용
-./build_dialog_tts_gui.sh
-```
-
 ### 4. 빌드 확인
 
 ```bash
-# 메인 GUI
+# 앱 파일 확인
 ls -lh dist/localkoreantts-gui/LocalKoreanTTS.app/Contents/MacOS/gui_entry
-
-# Dialog TTS GUI
-ls -lh dialog-tts/dist/DialogTTS.app/Contents/MacOS/dialog_tts_gui
 
 # 앱 실행 테스트
 open dist/localkoreantts-gui/LocalKoreanTTS.app
-open dialog-tts/dist/DialogTTS.app
 ```
 
 ## 빌드 산출물
 
-### 메인 GUI (LocalKoreanTTS.app)
+### LocalKoreanTTS.app
 
 ```
 dist/localkoreantts-gui/LocalKoreanTTS.app/
@@ -207,29 +152,10 @@ dist/localkoreantts-gui/LocalKoreanTTS.app/
 - ✅ 음성 프로필 선택
 - ✅ 출력 파일 선택
 - ✅ 진행률 표시
+- ✅ 스테레오 패닝
+- ✅ 화자별 속도 조절
 
 **앱 크기:** 약 150-200 MB
-
-### Dialog TTS GUI (DialogTTS.app)
-
-```
-dialog-tts/dist/DialogTTS.app/
-├── Contents/
-│   ├── MacOS/
-│   │   └── dialog_tts_gui         # 실행 파일
-│   ├── Frameworks/                # Python, PySide6 등
-│   └── Info.plist
-```
-
-**포함된 기능:**
-- ✅ 멀티 화자 대화 합성
-- ✅ 커스텀 화자 이름
-- ✅ 스테레오 패닝
-- ✅ 속도 조절 (화자별)
-- ✅ 지시문 지원 ([silence=400] 등)
-- ✅ 샘플 레이트 선택
-
-**앱 크기:** 약 120-150 MB
 
 ## 고급 설정
 
@@ -405,8 +331,6 @@ hiddenimports=[
 
 ## 빌드 스크립트 사용
 
-### 메인 GUI 빌드
-
 ```bash
 # 실행 권한 부여
 chmod +x build_macos.sh
@@ -417,22 +341,6 @@ chmod +x build_macos.sh
 # 성공 시 출력:
 # ✓ 빌드 성공!
 # 앱 위치: dist/localkoreantts-gui/LocalKoreanTTS.app
-```
-
-### Dialog TTS GUI 빌드
-
-```bash
-cd dialog-tts
-
-# 실행 권한 부여
-chmod +x build_dialog_tts_gui.sh
-
-# 빌드 실행
-./build_dialog_tts_gui.sh
-
-# 성공 시 출력:
-# ✓ 빌드 성공!
-# 앱 위치: dist/DialogTTS.app
 ```
 
 ## CI/CD 자동 빌드
