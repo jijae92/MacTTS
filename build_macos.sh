@@ -59,6 +59,25 @@ if ! python3 -c "import edge_tts" 2>/dev/null; then
     echo "  pip install edge-tts"
 fi
 
+# ffmpeg 체크
+if ! command -v ffmpeg &> /dev/null; then
+    echo -e "${RED}✗${NC} ffmpeg가 설치되지 않았습니다."
+    echo -e "${YELLOW}⚠️  경고: ffmpeg 없이 빌드하면 TTS가 작동하지 않습니다!${NC}"
+    echo ""
+    echo -e "${YELLOW}ffmpeg 설치:${NC}"
+    echo "  brew install ffmpeg"
+    echo ""
+    read -p "계속 진행하시겠습니까? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+else
+    FFMPEG_PATH=$(which ffmpeg)
+    echo -e "${GREEN}✓${NC} ffmpeg 설치됨: ${BLUE}$FFMPEG_PATH${NC}"
+    echo -e "${GREEN}  → 앱 번들에 포함됩니다${NC}"
+fi
+
 # 이전 빌드 정리
 echo ""
 echo -e "${YELLOW}이전 빌드 정리 중...${NC}"
@@ -106,6 +125,13 @@ if [ -d "dist/localkoreantts-gui/LocalKoreanTTS.app" ]; then
     echo "  ✓ Microsoft Edge TTS (10개 한국어 보이스)"
     echo "  ✓ 스테레오 패닝"
     echo "  ✓ 지시문 지원 ([silence=400] 등)"
+    echo "  ✓ 다크모드 자동 감지"
+    echo "  ✓ 백그라운드 처리 (UI 프리징 없음)"
+    if command -v ffmpeg &> /dev/null; then
+        echo "  ✓ FFmpeg 번들 포함 (독립 실행 가능)"
+    else
+        echo "  ⚠️ FFmpeg 미포함 (시스템 설치 필요)"
+    fi
     echo ""
 
 else

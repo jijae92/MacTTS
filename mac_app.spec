@@ -8,6 +8,7 @@ PyInstaller configuration for producing the LocalKoreanTTS macOS .app bundle.
 """
 
 import pathlib
+import shutil
 from PyInstaller.utils.hooks import collect_submodules
 
 try:
@@ -28,10 +29,19 @@ datas = [
     (str(project_root / "sample" / "sample.txt"), "sample"),
 ]
 
+# Find and bundle ffmpeg if available
+binaries_list = []
+ffmpeg_path = shutil.which('ffmpeg')
+if ffmpeg_path:
+    print(f"✓ Found ffmpeg at: {ffmpeg_path}")
+    binaries_list.append((ffmpeg_path, '.'))
+else:
+    print("⚠️  ffmpeg not found - app will need system ffmpeg installed")
+
 a = Analysis(
     [gui_entry.as_posix()],
     pathex=[project_root.as_posix()],
-    binaries=[],
+    binaries=binaries_list,
     datas=datas,
     hiddenimports=collect_submodules("PySide6") + [
         'edge_tts',
