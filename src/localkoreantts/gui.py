@@ -9,6 +9,7 @@ from __future__ import annotations
 import sys
 import os
 import tempfile
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, Dict
@@ -20,6 +21,248 @@ from .engine import LocalKoreanTTSEngine
 from .paths import PathConfig, resolve_path_config
 
 IS_MAC = sys.platform == "darwin"
+
+# Modern UI stylesheet
+MODERN_STYLESHEET = """
+QMainWindow {
+    background-color: #f5f5f5;
+}
+
+QTabWidget::pane {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    padding: 10px;
+}
+
+QTabBar::tab {
+    background: #e8e8e8;
+    border: none;
+    padding: 10px 20px;
+    margin-right: 2px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    font-size: 11pt;
+    font-weight: 500;
+}
+
+QTabBar::tab:selected {
+    background: white;
+    color: #2196F3;
+}
+
+QTabBar::tab:hover {
+    background: #d0d0d0;
+}
+
+QGroupBox {
+    font-size: 11pt;
+    font-weight: 600;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    margin-top: 12px;
+    padding-top: 18px;
+    background: #fafafa;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 15px;
+    padding: 0 8px;
+    color: #2196F3;
+}
+
+QPushButton {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 11pt;
+    font-weight: 500;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background-color: #1976D2;
+}
+
+QPushButton:pressed {
+    background-color: #0D47A1;
+}
+
+QPushButton:disabled {
+    background-color: #BDBDBD;
+    color: #757575;
+}
+
+QPushButton#browseButton {
+    background-color: #757575;
+    padding: 8px 16px;
+}
+
+QPushButton#browseButton:hover {
+    background-color: #616161;
+}
+
+QPushButton#generateButton {
+    background-color: #4CAF50;
+    font-size: 12pt;
+    padding: 12px 32px;
+    min-height: 25px;
+}
+
+QPushButton#generateButton:hover {
+    background-color: #45a049;
+}
+
+QPushButton#playButton {
+    background-color: #FF9800;
+    padding: 8px 16px;
+}
+
+QPushButton#playButton:hover {
+    background-color: #F57C00;
+}
+
+QTextEdit, QPlainTextEdit {
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 11pt;
+    background: white;
+}
+
+QTextEdit:focus, QPlainTextEdit:focus {
+    border: 2px solid #2196F3;
+}
+
+QLineEdit {
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 10pt;
+    background: white;
+}
+
+QLineEdit:focus {
+    border: 2px solid #2196F3;
+}
+
+QComboBox {
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 10pt;
+    background: white;
+    min-width: 100px;
+}
+
+QComboBox:hover {
+    border: 2px solid #2196F3;
+}
+
+QComboBox::drop-down {
+    border: none;
+    padding-right: 8px;
+}
+
+QSpinBox, QDoubleSpinBox {
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px;
+    font-size: 10pt;
+    background: white;
+}
+
+QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 2px solid #2196F3;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid #BDBDBD;
+    height: 6px;
+    background: #E0E0E0;
+    border-radius: 3px;
+}
+
+QSlider::handle:horizontal {
+    background: #2196F3;
+    border: none;
+    width: 18px;
+    height: 18px;
+    margin: -6px 0;
+    border-radius: 9px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #1976D2;
+}
+
+QProgressBar {
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 10pt;
+    font-weight: 500;
+    background: white;
+    min-height: 24px;
+}
+
+QProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                                stop:0 #4CAF50, stop:1 #8BC34A);
+    border-radius: 4px;
+}
+
+QLabel {
+    font-size: 10pt;
+    color: #424242;
+}
+
+QLabel#titleLabel {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #1976D2;
+}
+
+QLabel#subtitleLabel {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #757575;
+}
+
+QLabel#infoLabel {
+    font-size: 9pt;
+    color: #757575;
+    font-style: italic;
+}
+
+QCheckBox {
+    font-size: 10pt;
+    spacing: 8px;
+}
+
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid #BDBDBD;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #2196F3;
+    border-color: #2196F3;
+}
+
+QStatusBar {
+    background: #fafafa;
+    border-top: 1px solid #e0e0e0;
+    font-size: 9pt;
+    padding: 4px;
+}
+"""
 
 # Import dialog-tts modules if available
 _DIALOG_TTS_AVAILABLE = False
@@ -36,7 +279,7 @@ except Exception as e:
 
 
 class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
-    """Simple GUI that proxies the CLI workflow."""
+    """Modern GUI for Korean TTS with enhanced UX."""
 
     def __init__(
         self,
@@ -44,11 +287,18 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         path_config: PathConfig | None = None,
     ) -> None:
         super().__init__()
-        self.setWindowTitle("Local Korean TTS")
+        self.setWindowTitle("🎙️ Local Korean TTS")
+        self.setMinimumSize(900, 700)
+
+        # Apply modern stylesheet
+        self.setStyleSheet(MODERN_STYLESHEET)
 
         self._engine_factory = engine_factory or LocalKoreanTTSEngine
         self._config = (path_config or resolve_path_config()).ensure()
         self._engine = self._build_engine()
+
+        # Track last generated file for playback
+        self._last_output_file: Optional[Path] = None
 
         self.text_edit: QtWidgets.QTextEdit
         self.voice_combo: QtWidgets.QComboBox
@@ -60,14 +310,15 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.ffmpeg_path_edit: QtWidgets.QLineEdit
 
         self._tabs = QtWidgets.QTabWidget()
-        self._tabs.addTab(self._build_synthesis_tab(), "Single Speaker")
+        self._tabs.addTab(self._build_synthesis_tab(), "🎤 Single Speaker")
         if _DIALOG_TTS_AVAILABLE:
-            self._tabs.addTab(self._build_dialog_tab(), "Multi-Speaker Dialog")
-        self._tabs.addTab(self._build_settings_tab(), "Settings")
+            self._tabs.addTab(self._build_dialog_tab(), "💬 Multi-Speaker Dialog")
+        self._tabs.addTab(self._build_settings_tab(), "⚙️ Settings")
         self.setCentralWidget(self._tabs)
 
         self._setup_menu_bar()
-        self._append_log("Ready to synthesize.")
+        self._setup_status_bar()
+        self._append_log("✓ Ready to synthesize")
         self._notify_ffmpeg_missing()
 
     def _build_engine(self) -> LocalKoreanTTSEngine:
@@ -79,54 +330,115 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
     def _build_synthesis_tab(self) -> QtWidgets.QWidget:
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(widget)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
 
-        layout.addWidget(QtWidgets.QLabel("Input Text"))
+        # Input text group
+        input_group = QtWidgets.QGroupBox("📝 Input Text")
+        input_layout = QtWidgets.QVBoxLayout(input_group)
+
+        # Character counter header
+        counter_layout = QtWidgets.QHBoxLayout()
+        counter_layout.addStretch()
+        self.char_counter = QtWidgets.QLabel("0 characters")
+        self.char_counter.setObjectName("infoLabel")
+        counter_layout.addWidget(self.char_counter)
+        input_layout.addLayout(counter_layout)
+
         self.text_edit = QtWidgets.QTextEdit()
+        self.text_edit.setPlaceholderText("여기에 합성할 텍스트를 입력하세요...")
+        self.text_edit.setMinimumHeight(150)
         self.text_edit.textChanged.connect(self._update_generate_enabled)
-        layout.addWidget(self.text_edit)
+        self.text_edit.textChanged.connect(self._update_char_count)
+        self.text_edit.setToolTip("합성할 한국어 텍스트를 입력하세요")
+        input_layout.addWidget(self.text_edit)
 
-        voice_row = QtWidgets.QHBoxLayout()
-        voice_row.addWidget(QtWidgets.QLabel("Voice"))
+        layout.addWidget(input_group)
+
+        # Voice and speed settings group
+        settings_group = QtWidgets.QGroupBox("🎛️ Voice Settings")
+        settings_layout = QtWidgets.QGridLayout(settings_group)
+        settings_layout.setSpacing(12)
+
+        # Voice selection
+        settings_layout.addWidget(QtWidgets.QLabel("Voice:"), 0, 0)
         self.voice_combo = QtWidgets.QComboBox()
         self.voice_combo.addItems([v.name for v in self._engine.voices()])
-        voice_row.addWidget(self.voice_combo)
+        self.voice_combo.setToolTip("음성 선택")
+        settings_layout.addWidget(self.voice_combo, 0, 1)
 
-        # Add speed control
-        voice_row.addWidget(QtWidgets.QLabel("Speed"))
+        # Speed control
+        settings_layout.addWidget(QtWidgets.QLabel("Speed:"), 1, 0)
+        speed_widget = QtWidgets.QWidget()
+        speed_layout = QtWidgets.QHBoxLayout(speed_widget)
+        speed_layout.setContentsMargins(0, 0, 0, 0)
+
         self.speed_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.speed_slider.setRange(50, 200)  # 0.5x to 2.0x
         self.speed_slider.setValue(100)  # 1.0x default
         self.speed_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.speed_slider.setTickInterval(25)
-        self.speed_slider.setMaximumWidth(150)
-        voice_row.addWidget(self.speed_slider)
+        self.speed_slider.setToolTip("말하기 속도 조절 (0.5x ~ 2.0x)")
+        speed_layout.addWidget(self.speed_slider)
 
         self.speed_label = QtWidgets.QLabel("1.0x")
-        self.speed_label.setMinimumWidth(40)
+        self.speed_label.setMinimumWidth(50)
+        self.speed_label.setAlignment(QtCore.Qt.AlignCenter)
         self.speed_slider.valueChanged.connect(
             lambda v: self.speed_label.setText(f"{v/100:.1f}x")
         )
-        voice_row.addWidget(self.speed_label)
+        speed_layout.addWidget(self.speed_label)
 
-        layout.addLayout(voice_row)
+        settings_layout.addWidget(speed_widget, 1, 1)
+
+        layout.addWidget(settings_group)
+
+        # Output file group
+        output_group = QtWidgets.QGroupBox("💾 Output")
+        output_layout = QtWidgets.QVBoxLayout(output_group)
 
         output_row = QtWidgets.QHBoxLayout()
-        output_row.addWidget(QtWidgets.QLabel("Output File"))
+        output_row.addWidget(QtWidgets.QLabel("Output File:"))
+
         # Default to ~/Downloads/latest.wav
         downloads_dir = Path.home() / "Downloads"
         downloads_dir.mkdir(parents=True, exist_ok=True)
         self.output_edit = QtWidgets.QLineEdit(str(downloads_dir / "latest.wav"))
         self.output_edit.textChanged.connect(self._update_generate_enabled)
-        browse_btn = QtWidgets.QPushButton("Browse…")
-        browse_btn.clicked.connect(self._choose_output)
+        self.output_edit.setToolTip("출력 파일 경로")
         output_row.addWidget(self.output_edit)
-        output_row.addWidget(browse_btn)
-        layout.addLayout(output_row)
 
-        self.generate_btn = QtWidgets.QPushButton("Generate")
+        browse_btn = QtWidgets.QPushButton("📁 Browse...")
+        browse_btn.setObjectName("browseButton")
+        browse_btn.setToolTip("출력 파일 선택 (Cmd+O)")
+        browse_btn.setShortcut(self._platform_shortcut("O"))
+        browse_btn.clicked.connect(self._choose_output)
+        output_row.addWidget(browse_btn)
+
+        output_layout.addLayout(output_row)
+        layout.addWidget(output_group)
+
+        # Action buttons
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        self.generate_btn = QtWidgets.QPushButton("🎵 Generate Audio")
+        self.generate_btn.setObjectName("generateButton")
         self.generate_btn.setEnabled(False)
+        self.generate_btn.setToolTip("오디오 생성 (Cmd+G)")
+        self.generate_btn.setShortcut(self._platform_shortcut("G"))
         self.generate_btn.clicked.connect(self._handle_generate)
-        layout.addWidget(self.generate_btn)
+        button_layout.addWidget(self.generate_btn, stretch=3)
+
+        self.play_btn = QtWidgets.QPushButton("▶️ Play")
+        self.play_btn.setObjectName("playButton")
+        self.play_btn.setEnabled(False)
+        self.play_btn.setToolTip("생성된 오디오 재생 (Cmd+P)")
+        self.play_btn.setShortcut(self._platform_shortcut("P"))
+        self.play_btn.clicked.connect(self._play_audio)
+        button_layout.addWidget(self.play_btn, stretch=1)
+
+        layout.addLayout(button_layout)
 
         # Add progress bar
         self.progress_bar = QtWidgets.QProgressBar()
@@ -134,12 +446,14 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.progress_bar.setTextVisible(True)
         layout.addWidget(self.progress_bar)
 
-        describe_btn = QtWidgets.QPushButton("Describe Runtime")
-        describe_btn.clicked.connect(self._describe_runtime)
-        layout.addWidget(describe_btn)
+        # Log view
+        log_label = QtWidgets.QLabel("📋 Log")
+        log_label.setObjectName("subtitleLabel")
+        layout.addWidget(log_label)
 
         self.log_view = QtWidgets.QPlainTextEdit()
         self.log_view.setReadOnly(True)
+        self.log_view.setMaximumHeight(120)
         layout.addWidget(self.log_view)
 
         return widget
@@ -148,10 +462,12 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         """Build the multi-speaker dialog synthesis tab."""
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(widget)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # Title
-        title = QtWidgets.QLabel("Multi-Speaker Dialog Synthesis")
-        title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        title = QtWidgets.QLabel("💬 Multi-Speaker Dialog Synthesis")
+        title.setObjectName("titleLabel")
         layout.addWidget(title)
 
         # Script input
@@ -267,12 +583,9 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         layout.addLayout(output_row)
 
         # Generate button
-        self.dialog_generate_btn = QtWidgets.QPushButton("Generate Dialog Audio")
-        self.dialog_generate_btn.setStyleSheet(
-            "QPushButton { background-color: #4CAF50; color: white; "
-            "font-size: 12pt; padding: 8px; border-radius: 5px; }"
-            "QPushButton:hover { background-color: #45a049; }"
-        )
+        self.dialog_generate_btn = QtWidgets.QPushButton("🎵 Generate Dialog Audio")
+        self.dialog_generate_btn.setObjectName("generateButton")
+        self.dialog_generate_btn.setToolTip("대화 오디오 생성")
         self.dialog_generate_btn.clicked.connect(self._handle_dialog_generate)
         layout.addWidget(self.dialog_generate_btn)
 
@@ -379,6 +692,43 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
     def _open_model_dir(self) -> None:
         QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(self._config.model_dir)))
 
+    def _setup_status_bar(self) -> None:
+        """Setup status bar with useful information."""
+        self.status_bar = self.statusBar()
+        self.status_bar.showMessage("Ready")
+
+    def _update_char_count(self) -> None:
+        """Update character counter."""
+        text = self.text_edit.toPlainText()
+        char_count = len(text)
+        word_count = len(text.split())
+        self.char_counter.setText(f"{char_count} characters, {word_count} words")
+
+        # Update status bar
+        if hasattr(self, 'status_bar'):
+            self.status_bar.showMessage(f"Text: {char_count} chars")
+
+    def _play_audio(self) -> None:
+        """Play the last generated audio file."""
+        if not self._last_output_file or not self._last_output_file.exists():
+            self._show_warning("No Audio", "생성된 오디오 파일이 없습니다.")
+            return
+
+        try:
+            if IS_MAC:
+                # macOS: use 'open' command
+                subprocess.run(['open', str(self._last_output_file)], check=True)
+            elif sys.platform == 'win32':
+                # Windows: use 'start' command
+                os.startfile(str(self._last_output_file))
+            else:
+                # Linux: use 'xdg-open'
+                subprocess.run(['xdg-open', str(self._last_output_file)], check=True)
+
+            self._append_log(f"▶️ Playing: {self._last_output_file.name}")
+        except Exception as e:
+            self._show_error("Playback Error", f"오디오 재생 실패: {e}")
+
     def _handle_generate(self) -> None:
         text = self.text_edit.toPlainText().strip()
         if not text:
@@ -428,11 +778,22 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
             # Complete
             self.progress_bar.setValue(100)
             self.progress_bar.setFormat("Complete!")
-            self._append_log(f"Wrote {result}")
-            self._show_info("Success", f"Saved to {result}")
+            self._append_log(f"✓ Saved: {result}")
+
+            # Enable play button and store output file
+            self._last_output_file = result
+            self.play_btn.setEnabled(True)
+
+            # Update status bar
+            if hasattr(self, 'status_bar'):
+                self.status_bar.showMessage(f"✓ Generated: {result.name}")
+
+            self._show_info("Success", f"오디오가 성공적으로 생성되었습니다!\n\n저장 위치:\n{result}")
 
         except Exception as exc:  # pragma: no cover - GUI level exception
             self._show_error("Generation failed", str(exc))
+            if hasattr(self, 'status_bar'):
+                self.status_bar.showMessage("✗ Generation failed")
         finally:
             # Hide progress bar and re-enable button
             self.generate_btn.setEnabled(True)
