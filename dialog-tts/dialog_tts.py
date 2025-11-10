@@ -80,21 +80,25 @@ class DialogTTSEngine:
         self.sample_rate = sample_rate
         self.stereo = stereo
 
+        selected_engine = engine
+
         # Initialize TTS backend
-        if engine == "edge":
-            # Use Edge TTS (preferred for natural Korean speech)
+        if selected_engine == "edge":
             if not EDGE_TTS_AVAILABLE:
                 print("Edge TTS not available, falling back to macOS backend")
-                engine = "mac"
+                selected_engine = "mac"
             else:
                 self.backend = EdgeTTSBackend()
                 print("Using Microsoft Edge TTS for natural, high-quality Korean speech")
-                return
+                selected_engine = "edge"
 
-        if engine == "xtts":
+        if selected_engine == "xtts":
             if not XTTS_AVAILABLE:
                 raise RuntimeError("XTTS backend not available. Install with: pip install TTS")
             self.backend = XTTSBackend(model_dir=model_dir)
+        elif selected_engine == "edge":
+            # Already handled above
+            pass
         else:  # mac
             # Try PyObjC first, fall back to say CLI
             try:
@@ -291,6 +295,14 @@ class DialogTTSEngine:
                 language=config.lang,
                 speed=config.speed
             )
+        elif self.engine == "edge":
+            # Edge TTS backend
+            self.backend.synthesize_to_file(
+                text=text,
+                output_path=output_path,
+                voice_name=config.voice_name or "Yuna",
+                rate_wpm=config.rate_wpm
+            )
         else:  # mac
             # Find voice
             if hasattr(self.backend, 'find_voice'):
@@ -452,8 +464,8 @@ Examples:
                         help='Output audio file (WAV or MP3)')
 
     # Engine selection
-    parser.add_argument('--engine', choices=['mac', 'xtts'], default='mac',
-                        help='TTS engine to use (default: mac)')
+    parser.add_argument('--engine', choices=['edge', 'mac', 'xtts'], default='edge',
+                        help='TTS engine to use (default: edge)')
     parser.add_argument('--model-dir', type=Path,
                         help='XTTS model directory (optional)')
 

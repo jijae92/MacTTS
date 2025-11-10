@@ -15,11 +15,13 @@ try:
     project_root = pathlib.Path(__file__).parent.resolve()
 except NameError:
     project_root = pathlib.Path.cwd()
+src_dir = project_root / "src"
 distpath = (project_root / "dist" / "localkoreantts-gui").as_posix()
 workpath = (project_root / "build" / "mac_app").as_posix()
 gui_entry = project_root / "gui_entry.py"
 resources_dir = project_root / "resources"
 icon_file = resources_dir / "app_icon.icns"
+dialog_tts_dir = project_root / "dialog-tts"
 
 block_cipher = None
 
@@ -28,6 +30,12 @@ datas = [
     (str(project_root / "README.md"), "docs"),
     (str(project_root / "sample" / "sample.txt"), "sample"),
 ]
+if dialog_tts_dir.exists():
+    for file_path in dialog_tts_dir.rglob("*"):
+        if file_path.is_file():
+            relative_parent = file_path.relative_to(dialog_tts_dir).parent
+            destination = pathlib.Path("dialog-tts") / relative_parent
+            datas.append((str(file_path), destination.as_posix()))
 
 # Find and bundle ffmpeg if available
 binaries_list = []
@@ -35,12 +43,23 @@ ffmpeg_path = shutil.which('ffmpeg')
 if ffmpeg_path:
     print(f"✓ Found ffmpeg at: {ffmpeg_path}")
     binaries_list.append((ffmpeg_path, '.'))
+
+    ffprobe_path = shutil.which('ffprobe')
+    if not ffprobe_path:
+        candidate = pathlib.Path(ffmpeg_path).with_name('ffprobe')
+        if candidate.exists():
+            ffprobe_path = candidate.as_posix()
+    if ffprobe_path:
+        print(f"✓ Found ffprobe at: {ffprobe_path}")
+        binaries_list.append((ffprobe_path, '.'))
+    else:
+        print("⚠️  ffprobe not found - dialog synthesis may fail")
 else:
     print("⚠️  ffmpeg not found - app will need system ffmpeg installed")
 
 a = Analysis(
     [gui_entry.as_posix()],
-    pathex=[project_root.as_posix()],
+    pathex=[project_root.as_posix(), src_dir.as_posix()],
     binaries=binaries_list,
     datas=datas,
     hiddenimports=collect_submodules("PySide6") + [

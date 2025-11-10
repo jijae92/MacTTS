@@ -35,6 +35,8 @@ class EdgeTTSBackend:
         'GookMin': 'ko-KR-GookMinNeural',   # Male, friendly
         'Hyunsu': 'ko-KR-HyunsuNeural',     # Male, professional
         'SeoHyeon': 'ko-KR-SeoHyeonNeural', # Female, gentle
+        'SoonBok': 'ko-KR-SoonBokNeural',   # Female, warm and soft
+        'YuJin': 'ko-KR-YuJinNeural',       # Female, lively and energetic
     }
 
     def __init__(self):
@@ -105,6 +107,28 @@ class EdgeTTSBackend:
                 os.unlink(tmp_path)
             except Exception:
                 pass
+
+    def synthesize_to_file(
+        self,
+        text: str,
+        output_path: Path,
+        voice_name: str = "Yuna",
+        rate_wpm: int = 180,
+        **kwargs,
+    ) -> Path:
+        """
+        Compatibility wrapper used by dialog-tts. Ensures directories exist and
+        delegates to synthesize().
+        """
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        return self.synthesize(
+            text=text,
+            output_path=output_path,
+            voice_name=voice_name,
+            rate_wpm=rate_wpm,
+            **kwargs,
+        )
 
     def list_voices(self) -> list[str]:
         """List available voices."""

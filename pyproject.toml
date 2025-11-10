@@ -20,6 +20,8 @@ dependencies = [
     "edge-tts>=7.0",
     "gtts>=2.5",
     "pydub>=0.25",
+    "PyYAML>=6.0",
+    "pyloudnorm>=0.1.1",
 ]
 
 [project.optional-dependencies]

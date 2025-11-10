@@ -127,13 +127,20 @@ class VoiceProfile:
 
 
 # Updated voice profiles with edge-tts support (Natural, high-quality Korean voices)
+# Using Microsoft Edge TTS Neural voices for the most natural Korean speech
 AVAILABLE_VOICES: List[VoiceProfile] = [
-    VoiceProfile(name="standard-female", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-SunHiNeural"),
-    VoiceProfile(name="standard-male", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-InJoonNeural"),
-    VoiceProfile(name="natural-female", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-JiMinNeural"),
-    VoiceProfile(name="natural-male", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-HyunsuNeural"),
-    VoiceProfile(name="professional-female", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-SeoHyeonNeural"),
-    VoiceProfile(name="professional-male", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-GookMinNeural"),
+    # Female voices - natural and expressive
+    VoiceProfile(name="SunHi (여성, 밝고 친근함)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-SunHiNeural"),
+    VoiceProfile(name="JiMin (여성, 차분하고 자연스러움)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-JiMinNeural"),
+    VoiceProfile(name="SeoHyeon (여성, 전문적이고 명료함)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-SeoHyeonNeural"),
+    VoiceProfile(name="SoonBok (여성, 따뜻하고 부드러움)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-SoonBokNeural"),
+    VoiceProfile(name="YuJin (여성, 활기차고 생동감)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-YuJinNeural"),
+
+    # Male voices - clear and professional
+    VoiceProfile(name="InJoon (남성, 안정적이고 신뢰감)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-InJoonNeural"),
+    VoiceProfile(name="Hyunsu (남성, 젊고 활력있음)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-HyunsuNeural"),
+    VoiceProfile(name="GookMin (남성, 권위있고 전문적)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-GookMinNeural"),
+    VoiceProfile(name="BongJin (남성, 명료하고 차분함)", locale="ko-KR", sample_rate=24000, edge_voice="ko-KR-BongJinNeural"),
 ]
 
 
