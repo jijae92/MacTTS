@@ -752,16 +752,28 @@ def _is_dark_mode() -> bool:
 
 # Import dialog-tts modules if available
 _DIALOG_TTS_AVAILABLE = False
+DialogTTSEngine = None
+SpeakerConfig = None
+apply_speaker_name_mapping = None
+
 try:
     # Add dialog-tts directory to path
     dialog_tts_dir = Path(__file__).parent.parent.parent / "dialog-tts"
     if dialog_tts_dir.exists():
         sys.path.insert(0, str(dialog_tts_dir))
-        from dialog_tts import DialogTTSEngine, SpeakerConfig, apply_speaker_name_mapping
-        from backends.edge_tts_backend import EdgeTTSBackend, EDGE_TTS_AVAILABLE
+        # Import from dialog_tts.py file directly
+        from dialog_tts import DialogTTSEngine as DTTSEngine
+        from dialog_tts import SpeakerConfig as SConfig
+        from dialog_tts import apply_speaker_name_mapping as apply_mapping
+
+        DialogTTSEngine = DTTSEngine
+        SpeakerConfig = SConfig
+        apply_speaker_name_mapping = apply_mapping
         _DIALOG_TTS_AVAILABLE = True
+        print("✓ Dialog-TTS features loaded successfully")
 except Exception as e:
     print(f"Note: Dialog-TTS features not available: {e}")
+    print("  대화 형식 탭은 표시되지 않습니다.")
 
 
 class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
@@ -840,7 +852,7 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
 
         self.text_edit = QtWidgets.QTextEdit()
         self.text_edit.setPlaceholderText("여기에 합성할 텍스트를 입력하세요...")
-        self.text_edit.setMinimumHeight(150)
+        self.text_edit.setMinimumHeight(200)  # 더 크게 늘림
         self.text_edit.textChanged.connect(self._update_generate_enabled)
         self.text_edit.textChanged.connect(self._update_char_count)
         self.text_edit.setToolTip("합성할 한국어 텍스트를 입력하세요")
@@ -949,7 +961,12 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.log_view.setMaximumHeight(120)
         layout.addWidget(self.log_view)
 
-        return widget
+        # Wrap in scroll area to prevent content clipping
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidget(widget)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        return scroll_area
 
     def _build_dialog_tab(self) -> QtWidgets.QWidget:
         """Build the multi-speaker dialog synthesis tab."""
@@ -978,7 +995,7 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
             "A: 그 다음에는 보안 점검 보고서 리뷰가 있네요.\n"
             "B: 맞아요. 성능 테스트도 같이 검토해야 해요."
         )
-        self.dialog_script_text.setMinimumHeight(150)
+        self.dialog_script_text.setMinimumHeight(250)  # 더 크게 늘림
         script_layout.addWidget(self.dialog_script_text)
         layout.addWidget(script_group)
 
