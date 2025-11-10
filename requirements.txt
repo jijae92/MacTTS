@@ -1,0 +1,2 @@
+# Editable install with development extras for local testing.
+-e .[dev,mac]

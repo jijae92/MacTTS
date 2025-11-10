@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=69.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localkoreantts"
+version = "0.1.0"
+description = "Local Korean TTS toolkit with CLI, GUI, and macOS bundling helpers."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "LocalKoreanTTS Maintainers"},
+]
+dependencies = [
+    "numpy>=1.24",
+    "PySide6>=6.6",
+    "soundfile>=0.12",
+    "sounddevice>=0.4",
+    "edge-tts>=7.0",
+    "gtts>=2.5",
+    "pydub>=0.25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-mock>=3.11",
+    "pytest-qt>=4.4",
+]
+mac = [
+    "pyinstaller>=6.3",
+]
+gui = [
+    "PySide6>=6.6",
+]
+
+[project.scripts]
+localkoreantts = "localkoreantts.cli:entry_point"
+localkoreantts-gui = "localkoreantts.gui:entry_point"
+
+[tool.coverage.run]
+branch = true
+source = ["localkoreantts"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 95
+omit = [
+    "src/localkoreantts/gui.py",
+    "src/localkoreantts/__main__.py",
+]
+
+[tool.pytest.ini_options]
+addopts = "--maxfail=1"
