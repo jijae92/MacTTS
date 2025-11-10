@@ -324,7 +324,7 @@ class DialogTTSWindow(QtWidgets.QMainWindow):
                 'pan': self.speaker_a_pan.value(),
                 'aliases': []
             }
-            speaker_map['A'] = SpeakerConfig(config_a_dict, engine='mac')
+            speaker_map['A'] = SpeakerConfig(config_a_dict, engine='edge')
 
             # Speaker B
             config_b_dict = {
@@ -335,7 +335,7 @@ class DialogTTSWindow(QtWidgets.QMainWindow):
                 'pan': self.speaker_b_pan.value(),
                 'aliases': []
             }
-            speaker_map['B'] = SpeakerConfig(config_b_dict, engine='mac')
+            speaker_map['B'] = SpeakerConfig(config_b_dict, engine='edge')
 
             # Apply custom speaker names if provided
             custom_names = []

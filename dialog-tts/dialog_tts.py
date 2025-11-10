@@ -35,7 +35,7 @@ except ImportError:
 class SpeakerConfig:
     """Configuration for a single speaker."""
 
-    def __init__(self, config_dict: dict, engine: str = "mac"):
+    def __init__(self, config_dict: dict, engine: str = "edge"):
         self.config = config_dict
         self.engine = engine
 
@@ -44,8 +44,8 @@ class SpeakerConfig:
         self.pan = float(config_dict.get('pan', 0.0))
         self.aliases = config_dict.get('aliases', [])
 
-        # Mac engine parameters
-        if engine == "mac":
+        # Edge TTS / Mac engine parameters (both use similar config)
+        if engine in ("edge", "mac"):
             self.voice_hint = config_dict.get('voice_hint', 'ko_KR')
             self.voice_name = config_dict.get('voice_name')
             self.rate_wpm = int(config_dict.get('rate_wpm', 180))
