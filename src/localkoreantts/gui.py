@@ -22,6 +22,166 @@ from .paths import PathConfig, resolve_path_config
 
 IS_MAC = sys.platform == "darwin"
 
+
+# Background synthesis worker thread
+class SynthesisWorker(QtCore.QThread):
+    """Background worker for TTS synthesis to prevent UI freezing."""
+
+    progress = QtCore.Signal(int, str)  # progress value, status message
+    finished = QtCore.Signal(Path)  # output path
+    error = QtCore.Signal(str)  # error message
+
+    def __init__(
+        self,
+        engine: LocalKoreanTTSEngine,
+        text: str,
+        voice_name: str,
+        output_path: Path,
+        speed: float = 1.0
+    ):
+        super().__init__()
+        self.engine = engine
+        self.text = text
+        self.voice_name = voice_name
+        self.output_path = output_path
+        self.speed = speed
+
+    def run(self):
+        """Execute synthesis in background thread."""
+        try:
+            self.progress.emit(10, "텍스트 준비 중...")
+            QtCore.QThread.msleep(100)
+
+            self.progress.emit(30, "음성 합성 중...")
+            result = self.engine.synthesize_to_file(
+                text=self.text,
+                voice_name=self.voice_name,
+                output_path=self.output_path,
+                speed=self.speed
+            )
+
+            self.progress.emit(90, "파일 저장 중...")
+            QtCore.QThread.msleep(100)
+
+            self.progress.emit(100, "완료!")
+            self.finished.emit(result)
+
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+# Dialog synthesis worker thread
+class DialogSynthesisWorker(QtCore.QThread):
+    """Background worker for dialog synthesis."""
+
+    progress = QtCore.Signal(int, str)
+    finished = QtCore.Signal(Path)
+    error = QtCore.Signal(str)
+
+    def __init__(
+        self,
+        script_text: str,
+        output_path: Path,
+        speaker_config: Dict,
+        audio_settings: Dict
+    ):
+        super().__init__()
+        self.script_text = script_text
+        self.output_path = output_path
+        self.speaker_config = speaker_config
+        self.audio_settings = audio_settings
+
+    def run(self):
+        """Execute dialog synthesis in background thread."""
+        try:
+            # Import dialog-tts modules
+            sys.path.insert(0, str(Path(__file__).parent.parent.parent / "dialog-tts"))
+            from dialog_tts import DialogTTSEngine, SpeakerConfig, apply_speaker_name_mapping
+
+            self.progress.emit(10, "화자 설정 중...")
+
+            # Create speaker map
+            speaker_map = {}
+
+            # Speaker A
+            config_a = {
+                'voice_hint': 'ko_KR',
+                'voice_name': self.speaker_config['voice_a'],
+                'rate_wpm': self.speaker_config['rate_a'],
+                'gain_db': 0.0,
+                'pan': self.speaker_config['pan_a'],
+                'aliases': []
+            }
+            speaker_map['A'] = SpeakerConfig(config_a, engine='edge')
+
+            # Speaker B
+            config_b = {
+                'voice_hint': 'ko_KR',
+                'voice_name': self.speaker_config['voice_b'],
+                'rate_wpm': self.speaker_config['rate_b'],
+                'gain_db': 0.0,
+                'pan': self.speaker_config['pan_b'],
+                'aliases': []
+            }
+            speaker_map['B'] = SpeakerConfig(config_b, engine='edge')
+
+            # Apply custom names if provided
+            custom_names = []
+            if self.speaker_config.get('name_a'):
+                custom_names.append(self.speaker_config['name_a'])
+            if self.speaker_config.get('name_b'):
+                custom_names.append(self.speaker_config['name_b'])
+
+            if custom_names:
+                speaker_map = apply_speaker_name_mapping(speaker_map, custom_names)
+
+            self.progress.emit(25, "TTS 엔진 초기화 중...")
+
+            # Initialize engine
+            engine = DialogTTSEngine(
+                engine='edge',
+                sample_rate=self.audio_settings['sample_rate'],
+                stereo=self.audio_settings['stereo']
+            )
+
+            self.progress.emit(35, "스크립트 준비 중...")
+
+            # Save script to temp file
+            with tempfile.NamedTemporaryFile(
+                mode='w',
+                suffix='.txt',
+                delete=False,
+                encoding='utf-8'
+            ) as f:
+                f.write(self.script_text)
+                script_path = Path(f.name)
+
+            try:
+                self.progress.emit(40, "대화 합성 중... (시간이 걸릴 수 있습니다)")
+
+                # Synthesize
+                engine.synthesize_dialog(
+                    script_path=script_path,
+                    speaker_map=speaker_map,
+                    output_path=self.output_path,
+                    gap_ms=self.audio_settings['gap_ms'],
+                    xfade_ms=20,
+                    breath_ms=80,
+                    normalize_dbfs=-1.0
+                )
+
+                self.progress.emit(95, "파일 저장 중...")
+                QtCore.QThread.msleep(100)
+
+                self.progress.emit(100, "완료!")
+                self.finished.emit(self.output_path)
+
+            finally:
+                script_path.unlink(missing_ok=True)
+
+        except Exception as e:
+            self.error.emit(str(e))
+
 # Modern UI stylesheet
 MODERN_STYLESHEET = """
 QMainWindow {
@@ -309,16 +469,20 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.model_path_edit: QtWidgets.QLineEdit
         self.ffmpeg_path_edit: QtWidgets.QLineEdit
 
+        # Worker threads
+        self._synthesis_worker: Optional[SynthesisWorker] = None
+        self._dialog_worker: Optional[DialogSynthesisWorker] = None
+
         self._tabs = QtWidgets.QTabWidget()
-        self._tabs.addTab(self._build_synthesis_tab(), "🎤 Single Speaker")
+        self._tabs.addTab(self._build_synthesis_tab(), "🎤 혼자 말하기")
         if _DIALOG_TTS_AVAILABLE:
-            self._tabs.addTab(self._build_dialog_tab(), "💬 Multi-Speaker Dialog")
-        self._tabs.addTab(self._build_settings_tab(), "⚙️ Settings")
+            self._tabs.addTab(self._build_dialog_tab(), "💬 대화 형식")
+        self._tabs.addTab(self._build_settings_tab(), "⚙️ 설정")
         self.setCentralWidget(self._tabs)
 
         self._setup_menu_bar()
         self._setup_status_bar()
-        self._append_log("✓ Ready to synthesize")
+        self._append_log("✓ 준비 완료")
         self._notify_ffmpeg_missing()
 
     def _build_engine(self) -> LocalKoreanTTSEngine:
@@ -466,15 +630,15 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         layout.setContentsMargins(20, 20, 20, 20)
 
         # Title
-        title = QtWidgets.QLabel("💬 Multi-Speaker Dialog Synthesis")
+        title = QtWidgets.QLabel("💬 두 화자 대화 합성")
         title.setObjectName("titleLabel")
         layout.addWidget(title)
 
         # Script input
-        script_group = QtWidgets.QGroupBox("Dialog Script")
+        script_group = QtWidgets.QGroupBox("📝 대화 스크립트")
         script_layout = QtWidgets.QVBoxLayout(script_group)
 
-        script_label = QtWidgets.QLabel("Enter your dialog (use A:, B: for speakers):")
+        script_label = QtWidgets.QLabel("대화 내용을 입력하세요 (A:, B: 형식 사용):")
         script_layout.addWidget(script_label)
 
         self.dialog_script_text = QtWidgets.QPlainTextEdit()
@@ -490,61 +654,83 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         layout.addWidget(script_group)
 
         # Speaker configuration
-        speaker_group = QtWidgets.QGroupBox("Speaker Configuration")
+        speaker_group = QtWidgets.QGroupBox("🎤 화자 설정")
         speaker_layout = QtWidgets.QGridLayout(speaker_group)
+        speaker_layout.setSpacing(10)
+
+        # Speaker A header
+        speaker_a_header = QtWidgets.QLabel("화자 A")
+        speaker_a_header.setStyleSheet("font-weight: bold; font-size: 11pt; color: #2196F3;")
+        speaker_layout.addWidget(speaker_a_header, 0, 0, 1, 4)
 
         # Speaker A
-        speaker_layout.addWidget(QtWidgets.QLabel("Speaker A Name:"), 0, 0)
+        speaker_layout.addWidget(QtWidgets.QLabel("명칭:"), 1, 0)
         self.speaker_a_name = QtWidgets.QLineEdit()
-        self.speaker_a_name.setPlaceholderText("학생")
-        speaker_layout.addWidget(self.speaker_a_name, 0, 1)
+        self.speaker_a_name.setPlaceholderText("예: 학생, 진행자, 홍길동")
+        self.speaker_a_name.setToolTip("화자 A의 이름 (선택사항)")
+        speaker_layout.addWidget(self.speaker_a_name, 1, 1)
 
-        speaker_layout.addWidget(QtWidgets.QLabel("Voice:"), 0, 2)
+        speaker_layout.addWidget(QtWidgets.QLabel("목소리:"), 1, 2)
         self.speaker_a_voice = QtWidgets.QComboBox()
         self.speaker_a_voice.addItems(["SunHi", "JiMin", "SeoHyeon", "InJoon", "Hyunsu", "GookMin"])
-        speaker_layout.addWidget(self.speaker_a_voice, 0, 3)
+        self.speaker_a_voice.setToolTip("화자 A의 TTS 목소리")
+        speaker_layout.addWidget(self.speaker_a_voice, 1, 3)
 
-        speaker_layout.addWidget(QtWidgets.QLabel("Speed (WPM):"), 1, 0)
+        speaker_layout.addWidget(QtWidgets.QLabel("속도:"), 2, 0)
         self.speaker_a_rate = QtWidgets.QSpinBox()
         self.speaker_a_rate.setRange(100, 300)
         self.speaker_a_rate.setValue(180)
-        speaker_layout.addWidget(self.speaker_a_rate, 1, 1)
+        self.speaker_a_rate.setSuffix(" WPM")
+        self.speaker_a_rate.setToolTip("말하기 속도 (분당 단어 수)")
+        speaker_layout.addWidget(self.speaker_a_rate, 2, 1)
 
-        speaker_layout.addWidget(QtWidgets.QLabel("Pan:"), 1, 2)
+        speaker_layout.addWidget(QtWidgets.QLabel("패닝:"), 2, 2)
         self.speaker_a_pan = QtWidgets.QDoubleSpinBox()
         self.speaker_a_pan.setRange(-1.0, 1.0)
         self.speaker_a_pan.setSingleStep(0.1)
         self.speaker_a_pan.setValue(-0.3)
-        speaker_layout.addWidget(self.speaker_a_pan, 1, 3)
+        self.speaker_a_pan.setToolTip("스테레오 위치: -1.0 (왼쪽) ~ +1.0 (오른쪽)")
+        speaker_layout.addWidget(self.speaker_a_pan, 2, 3)
 
         # Separator
         separator = QtWidgets.QFrame()
         separator.setFrameShape(QtWidgets.QFrame.HLine)
-        speaker_layout.addWidget(separator, 2, 0, 1, 4)
+        separator.setFrameShadow(QtWidgets.QFrame.Sunken)
+        speaker_layout.addWidget(separator, 3, 0, 1, 4)
+
+        # Speaker B header
+        speaker_b_header = QtWidgets.QLabel("화자 B")
+        speaker_b_header.setStyleSheet("font-weight: bold; font-size: 11pt; color: #FF9800;")
+        speaker_layout.addWidget(speaker_b_header, 4, 0, 1, 4)
 
         # Speaker B
-        speaker_layout.addWidget(QtWidgets.QLabel("Speaker B Name:"), 3, 0)
+        speaker_layout.addWidget(QtWidgets.QLabel("명칭:"), 5, 0)
         self.speaker_b_name = QtWidgets.QLineEdit()
-        self.speaker_b_name.setPlaceholderText("전문가")
-        speaker_layout.addWidget(self.speaker_b_name, 3, 1)
+        self.speaker_b_name.setPlaceholderText("예: 전문가, 게스트, 김철수")
+        self.speaker_b_name.setToolTip("화자 B의 이름 (선택사항)")
+        speaker_layout.addWidget(self.speaker_b_name, 5, 1)
 
-        speaker_layout.addWidget(QtWidgets.QLabel("Voice:"), 3, 2)
+        speaker_layout.addWidget(QtWidgets.QLabel("목소리:"), 5, 2)
         self.speaker_b_voice = QtWidgets.QComboBox()
         self.speaker_b_voice.addItems(["InJoon", "Hyunsu", "GookMin", "SunHi", "JiMin", "SeoHyeon"])
-        speaker_layout.addWidget(self.speaker_b_voice, 3, 3)
+        self.speaker_b_voice.setToolTip("화자 B의 TTS 목소리")
+        speaker_layout.addWidget(self.speaker_b_voice, 5, 3)
 
-        speaker_layout.addWidget(QtWidgets.QLabel("Speed (WPM):"), 4, 0)
+        speaker_layout.addWidget(QtWidgets.QLabel("속도:"), 6, 0)
         self.speaker_b_rate = QtWidgets.QSpinBox()
         self.speaker_b_rate.setRange(100, 300)
         self.speaker_b_rate.setValue(170)
-        speaker_layout.addWidget(self.speaker_b_rate, 4, 1)
+        self.speaker_b_rate.setSuffix(" WPM")
+        self.speaker_b_rate.setToolTip("말하기 속도 (분당 단어 수)")
+        speaker_layout.addWidget(self.speaker_b_rate, 6, 1)
 
-        speaker_layout.addWidget(QtWidgets.QLabel("Pan:"), 4, 2)
+        speaker_layout.addWidget(QtWidgets.QLabel("패닝:"), 6, 2)
         self.speaker_b_pan = QtWidgets.QDoubleSpinBox()
         self.speaker_b_pan.setRange(-1.0, 1.0)
         self.speaker_b_pan.setSingleStep(0.1)
         self.speaker_b_pan.setValue(0.3)
-        speaker_layout.addWidget(self.speaker_b_pan, 4, 3)
+        self.speaker_b_pan.setToolTip("스테레오 위치: -1.0 (왼쪽) ~ +1.0 (오른쪽)")
+        speaker_layout.addWidget(self.speaker_b_pan, 6, 3)
 
         layout.addWidget(speaker_group)
 
@@ -730,75 +916,83 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
             self._show_error("Playback Error", f"오디오 재생 실패: {e}")
 
     def _handle_generate(self) -> None:
+        """Start synthesis in background thread."""
         text = self.text_edit.toPlainText().strip()
         if not text:
-            self._show_warning("Missing text", "Enter text to synthesize.")
+            self._show_warning("입력 필요", "합성할 텍스트를 입력하세요.")
             return
         destination_text = self.output_edit.text().strip()
         if not destination_text:
-            self._show_warning("Missing output", "Select an output file.")
+            self._show_warning("출력 파일 필요", "출력 파일을 선택하세요.")
             return
         destination = Path(destination_text).expanduser()
 
-        # Show progress bar and disable button
+        # Prepare UI
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setFormat("Initializing...")
         self.generate_btn.setEnabled(False)
-        QtWidgets.QApplication.processEvents()
+        self.play_btn.setEnabled(False)
 
-        try:
-            # Update progress: preparing
-            self.progress_bar.setValue(10)
-            self.progress_bar.setFormat("Preparing text...")
-            self._append_log(f"Starting synthesis for {len(text)} characters")
-            QtWidgets.QApplication.processEvents()
+        # Get parameters
+        speed = self.speed_slider.value() / 100.0
+        voice_name = self.voice_combo.currentText()
 
-            # Update progress: synthesizing
-            self.progress_bar.setValue(30)
-            self.progress_bar.setFormat("Synthesizing speech...")
-            QtWidgets.QApplication.processEvents()
+        self._append_log(f"합성 시작: {len(text)}자, 속도 {speed}x")
 
-            # Get speed multiplier from slider
-            speed = self.speed_slider.value() / 100.0
+        # Create and start worker
+        self._synthesis_worker = SynthesisWorker(
+            engine=self._engine,
+            text=text,
+            voice_name=voice_name,
+            output_path=destination,
+            speed=speed
+        )
 
-            result = self._engine.synthesize_to_file(
-                text=text,
-                voice_name=self.voice_combo.currentText(),
-                output_path=destination,
-                speed=speed,
-            )
+        # Connect signals
+        self._synthesis_worker.progress.connect(self._on_synthesis_progress)
+        self._synthesis_worker.finished.connect(self._on_synthesis_finished)
+        self._synthesis_worker.error.connect(self._on_synthesis_error)
 
-            # Update progress: saving
-            self.progress_bar.setValue(90)
-            self.progress_bar.setFormat("Saving file...")
-            QtWidgets.QApplication.processEvents()
+        # Start worker
+        self._synthesis_worker.start()
 
-            # Complete
-            self.progress_bar.setValue(100)
-            self.progress_bar.setFormat("Complete!")
-            self._append_log(f"✓ Saved: {result}")
+    def _on_synthesis_progress(self, value: int, message: str):
+        """Update progress during synthesis."""
+        self.progress_bar.setValue(value)
+        self.progress_bar.setFormat(message)
+        if hasattr(self, 'status_bar'):
+            self.status_bar.showMessage(message)
 
-            # Enable play button and store output file
-            self._last_output_file = result
-            self.play_btn.setEnabled(True)
+    def _on_synthesis_finished(self, result_path: Path):
+        """Handle successful synthesis completion."""
+        self._append_log(f"✓ 완료: {result_path.name}")
 
-            # Update status bar
-            if hasattr(self, 'status_bar'):
-                self.status_bar.showMessage(f"✓ Generated: {result.name}")
+        # Enable play button and store output file
+        self._last_output_file = result_path
+        self.play_btn.setEnabled(True)
+        self.generate_btn.setEnabled(True)
 
-            self._show_info("Success", f"오디오가 성공적으로 생성되었습니다!\n\n저장 위치:\n{result}")
+        # Update status bar
+        if hasattr(self, 'status_bar'):
+            self.status_bar.showMessage(f"✓ 생성 완료: {result_path.name}")
 
-        except Exception as exc:  # pragma: no cover - GUI level exception
-            self._show_error("Generation failed", str(exc))
-            if hasattr(self, 'status_bar'):
-                self.status_bar.showMessage("✗ Generation failed")
-        finally:
-            # Hide progress bar and re-enable button
-            self.generate_btn.setEnabled(True)
-            # Keep progress bar visible for a moment to show completion
-            QtCore.QTimer.singleShot(2000, lambda: self.progress_bar.setVisible(False))
+        self._show_info("성공", f"오디오가 성공적으로 생성되었습니다!\n\n저장 위치:\n{result_path}")
+
+        # Hide progress bar after delay
+        QtCore.QTimer.singleShot(2000, lambda: self.progress_bar.setVisible(False))
+
+    def _on_synthesis_error(self, error_message: str):
+        """Handle synthesis error."""
+        self._append_log(f"✗ 오류: {error_message}")
+        self._show_error("합성 실패", f"오디오 생성 중 오류가 발생했습니다:\n\n{error_message}")
+
+        self.generate_btn.setEnabled(True)
+        if hasattr(self, 'status_bar'):
+            self.status_bar.showMessage("✗ 합성 실패")
+
+        # Hide progress bar
+        QtCore.QTimer.singleShot(1000, lambda: self.progress_bar.setVisible(False))
 
     def _describe_runtime(self) -> None:
         lines = _voice_lines(self._engine.voices())
@@ -859,145 +1053,95 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         QtWidgets.QApplication.processEvents()
 
     def _handle_dialog_generate(self) -> None:
-        """Handle multi-speaker dialog generation."""
+        """Start dialog synthesis in background thread."""
         if not _DIALOG_TTS_AVAILABLE:
             self._show_error("Feature Unavailable", "Dialog-TTS features are not available.")
             return
 
-        try:
-            # Validate inputs
-            script = self.dialog_script_text.toPlainText().strip()
-            if not script:
-                self._show_warning("Missing script", "Enter a dialog script to synthesize.")
-                return
+        # Validate inputs
+        script = self.dialog_script_text.toPlainText().strip()
+        if not script:
+            self._show_warning("Missing script", "Enter a dialog script to synthesize.")
+            return
 
-            output_text = self.dialog_output_edit.text().strip()
-            if not output_text:
-                self._show_warning("Missing output", "Select an output file.")
-                return
+        output_text = self.dialog_output_edit.text().strip()
+        if not output_text:
+            self._show_warning("Missing output", "Select an output file.")
+            return
 
-            output_path = Path(output_text)
-            if not output_path.parent.exists():
-                self._show_warning("Invalid path", f"Output directory does not exist: {output_path.parent}")
-                return
+        output_path = Path(output_text)
+        if not output_path.parent.exists():
+            self._show_warning("Invalid path", f"Output directory does not exist: {output_path.parent}")
+            return
 
-            # Show progress
-            self.dialog_progress_bar.setVisible(True)
-            self.dialog_progress_bar.setRange(0, 100)
-            self.dialog_progress_bar.setValue(0)
-            self.dialog_progress_bar.setFormat("Preparing...")
-            self.dialog_generate_btn.setEnabled(False)
-            self._dialog_log("Starting dialog synthesis...")
-            QtWidgets.QApplication.processEvents()
+        # Prepare speaker config
+        speaker_config = {
+            'voice_a': self.speaker_a_voice.currentText(),
+            'voice_b': self.speaker_b_voice.currentText(),
+            'name_a': self.speaker_a_name.text().strip(),
+            'name_b': self.speaker_b_name.text().strip(),
+            'rate_a': self.speaker_a_rate.value(),
+            'rate_b': self.speaker_b_rate.value(),
+            'pan_a': self.speaker_a_pan.value(),
+            'pan_b': self.speaker_b_pan.value(),
+        }
 
-            # Create speaker configs
-            self.dialog_progress_bar.setValue(10)
-            self.dialog_progress_bar.setFormat("Configuring speakers...")
-            self._dialog_log("Configuring speakers...")
-            QtWidgets.QApplication.processEvents()
+        # Prepare audio settings
+        audio_settings = {
+            'sample_rate': int(self.dialog_sr_combo.currentText()),
+            'stereo': self.dialog_stereo_check.isChecked(),
+            'gap_ms': self.dialog_gap_spin.value(),
+        }
 
-            speaker_map = {}
+        # Show progress and disable button
+        self.dialog_progress_bar.setVisible(True)
+        self.dialog_progress_bar.setRange(0, 100)
+        self.dialog_progress_bar.setValue(0)
+        self.dialog_generate_btn.setEnabled(False)
+        self._dialog_log("대화 합성을 시작합니다...")
 
-            # Speaker A config
-            config_a_dict = {
-                'voice_hint': 'ko_KR',
-                'voice_name': self.speaker_a_voice.currentText(),
-                'rate_wpm': self.speaker_a_rate.value(),
-                'gain_db': 0.0,
-                'pan': self.speaker_a_pan.value(),
-                'aliases': []
-            }
-            speaker_map['A'] = SpeakerConfig(config_a_dict, engine='edge')
+        # Create and start worker thread
+        self._dialog_worker = DialogSynthesisWorker(
+            script_text=script,
+            output_path=output_path,
+            speaker_config=speaker_config,
+            audio_settings=audio_settings
+        )
+        self._dialog_worker.progress.connect(self._on_dialog_progress)
+        self._dialog_worker.finished.connect(self._on_dialog_finished)
+        self._dialog_worker.error.connect(self._on_dialog_error)
+        self._dialog_worker.start()
 
-            # Speaker B config
-            config_b_dict = {
-                'voice_hint': 'ko_KR',
-                'voice_name': self.speaker_b_voice.currentText(),
-                'rate_wpm': self.speaker_b_rate.value(),
-                'gain_db': 0.0,
-                'pan': self.speaker_b_pan.value(),
-                'aliases': []
-            }
-            speaker_map['B'] = SpeakerConfig(config_b_dict, engine='edge')
+    def _on_dialog_progress(self, value: int, message: str) -> None:
+        """Handle dialog synthesis progress updates."""
+        self.dialog_progress_bar.setValue(value)
+        self.dialog_progress_bar.setFormat(f"{message} ({value}%)")
+        self._dialog_log(message)
 
-            # Apply custom speaker names if provided
-            custom_names = []
-            if self.speaker_a_name.text().strip():
-                custom_names.append(self.speaker_a_name.text().strip())
-            if self.speaker_b_name.text().strip():
-                custom_names.append(self.speaker_b_name.text().strip())
+    def _on_dialog_finished(self, output_path: Path) -> None:
+        """Handle dialog synthesis completion."""
+        self._dialog_log(f"✓ 성공! 저장 위치: {output_path}")
+        self.dialog_progress_bar.setValue(100)
+        self.dialog_progress_bar.setFormat("완료!")
 
-            if custom_names:
-                speaker_map = apply_speaker_name_mapping(speaker_map, custom_names)
-                self._dialog_log(f"Speaker names: {list(speaker_map.keys())}")
+        # Re-enable button
+        self.dialog_generate_btn.setEnabled(True)
 
-            # Initialize engine
-            self.dialog_progress_bar.setValue(25)
-            self.dialog_progress_bar.setFormat("Initializing TTS engine...")
-            self._dialog_log("Initializing TTS engine...")
-            QtWidgets.QApplication.processEvents()
+        # Show success message
+        self._show_info("완료", f"대화 오디오가 성공적으로 생성되었습니다!\n\n저장 위치:\n{output_path}")
 
-            engine = DialogTTSEngine(
-                engine='edge',  # Use Edge TTS for natural Korean speech
-                sample_rate=int(self.dialog_sr_combo.currentText()),
-                stereo=self.dialog_stereo_check.isChecked()
-            )
+        # Hide progress bar after delay
+        QtCore.QTimer.singleShot(2000, lambda: self.dialog_progress_bar.setVisible(False))
 
-            # Save script to temp file
-            self.dialog_progress_bar.setValue(35)
-            self.dialog_progress_bar.setFormat("Preparing script...")
-            QtWidgets.QApplication.processEvents()
+    def _on_dialog_error(self, error_message: str) -> None:
+        """Handle dialog synthesis errors."""
+        self._dialog_log(f"✗ 오류: {error_message}")
+        self.dialog_progress_bar.setFormat("오류 발생")
+        self.dialog_generate_btn.setEnabled(True)
+        self._show_error("생성 실패", error_message)
 
-            with tempfile.NamedTemporaryFile(
-                mode='w',
-                suffix='.txt',
-                delete=False,
-                encoding='utf-8'
-            ) as f:
-                f.write(script)
-                script_path = Path(f.name)
-
-            try:
-                # Synthesize
-                self.dialog_progress_bar.setValue(40)
-                self.dialog_progress_bar.setFormat("Synthesizing dialog... (this may take a while)")
-                self._dialog_log("Synthesizing dialog...")
-                QtWidgets.QApplication.processEvents()
-
-                engine.synthesize_dialog(
-                    script_path=script_path,
-                    speaker_map=speaker_map,
-                    output_path=output_path,
-                    gap_ms=self.dialog_gap_spin.value(),
-                    xfade_ms=20,
-                    breath_ms=80,
-                    normalize_dbfs=-1.0
-                )
-
-                self.dialog_progress_bar.setValue(95)
-                self.dialog_progress_bar.setFormat("Finalizing...")
-                QtWidgets.QApplication.processEvents()
-
-                self._dialog_log(f"✓ Success! Saved to: {output_path}")
-                self.dialog_progress_bar.setValue(100)
-                self.dialog_progress_bar.setFormat("Complete!")
-
-                # Show success dialog
-                self._show_info("Success", f"Dialog audio generated successfully!\n\nSaved to:\n{output_path}")
-
-            finally:
-                # Clean up temp file
-                script_path.unlink(missing_ok=True)
-
-        except Exception as exc:
-            self._dialog_log(f"✗ Error: {exc}")
-            self._show_error("Generation failed", str(exc))
-
-        finally:
-            # Re-enable UI
-            self.dialog_generate_btn.setEnabled(True)
-            # Keep progress bar visible for a moment
-            QtCore.QTimer.singleShot(2000, lambda: self.dialog_progress_bar.setVisible(False))
+        # Hide progress bar after delay
+        QtCore.QTimer.singleShot(2000, lambda: self.dialog_progress_bar.setVisible(False))
 
 
 def run(argv: list[str] | None = None) -> int:
