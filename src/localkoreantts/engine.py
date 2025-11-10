@@ -113,6 +113,7 @@ class LocalKoreanTTSEngine:
         text: str,
         voice_name: str,
         output_path: Path,
+        speed: float = 1.0,
     ) -> Path:
         if not text.strip():
             raise ValueError("Cannot synthesize empty text")
@@ -133,11 +134,15 @@ class LocalKoreanTTSEngine:
                 # Get the edge voice for this profile
                 edge_voice = voice.edge_voice or "ko-KR-SunHiNeural"
 
-                # Run async synthesis with rate adjustment for more natural speech
-                # +0% is default, -10% is slightly slower (more clear), +10% is faster
+                # Calculate rate percentage from speed multiplier
+                # speed: 1.0 = 0%, 0.5 = -50%, 2.0 = +100%
+                rate_percent = int((speed - 1.0) * 100)
+                rate_percent = max(-50, min(100, rate_percent))  # Clamp to valid range
+                rate_str = f"{rate_percent:+d}%"
+
+                # Run async synthesis with rate adjustment
                 async def _synthesize():
-                    # Use +0% rate for natural speed, can adjust with rate="+5%" for slightly faster
-                    communicate = edge_tts.Communicate(text, edge_voice, rate="+0%", volume="+0%")
+                    communicate = edge_tts.Communicate(text, edge_voice, rate=rate_str, volume="+0%")
                     await communicate.save(tmp_path)
 
                 asyncio.run(_synthesize())
