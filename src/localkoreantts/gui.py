@@ -1360,9 +1360,31 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
         self.generate_btn.setEnabled(has_text and has_output)
 
     def _notify_ffmpeg_missing(self) -> None:
-        # Check if ffmpeg is available
+        # Check if ffmpeg is available in multiple locations
         import shutil
-        if self._engine.ffmpeg_path or shutil.which('ffmpeg'):
+
+        ffmpeg_locations = [
+            shutil.which('ffmpeg'),  # System PATH
+            '/opt/homebrew/bin/ffmpeg',  # Homebrew Apple Silicon
+            '/usr/local/bin/ffmpeg',  # Homebrew Intel
+            '/opt/local/bin/ffmpeg',  # MacPorts
+        ]
+
+        # Check if running from bundled app
+        if getattr(sys, 'frozen', False):
+            bundle_dir = Path(sys._MEIPASS)
+            ffmpeg_locations.insert(0, str(bundle_dir / 'ffmpeg'))
+
+        # Check if ffmpeg exists in any location
+        ffmpeg_found = None
+        for location in ffmpeg_locations:
+            if location and Path(location).exists():
+                ffmpeg_found = location
+                break
+
+        if self._engine.ffmpeg_path or ffmpeg_found:
+            if ffmpeg_found:
+                self._append_log(f"✓ FFmpeg found: {ffmpeg_found}")
             return
 
         # Show warning message
@@ -1373,8 +1395,15 @@ class LocalKoreanTTSWindow(QtWidgets.QMainWindow):
             "  • macOS: brew install ffmpeg\n"
             "  • Linux: sudo apt install ffmpeg\n"
             "  • Windows: ffmpeg.org에서 다운로드\n\n"
-            "설치 후 GUI를 재시작하세요."
+            "확인한 경로:\n"
         )
+
+        for loc in ffmpeg_locations:
+            if loc:
+                message += f"  ✗ {loc}\n"
+
+        message += "\n설치 후 GUI를 재시작하세요."
+
         self._append_log("⚠️  FFmpeg not detected - TTS will not work!")
 
         # Show popup warning so users don't miss it

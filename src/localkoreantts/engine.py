@@ -9,6 +9,7 @@ from array import array
 from typing import Iterable, List, Optional
 import wave
 import os
+import sys
 import asyncio
 
 from .paths import PathConfig, resolve_path_config
@@ -26,13 +27,48 @@ except ImportError:
 
 # Fall back to gTTS (simpler, more reliable for Korean)
 gTTS = None
+AudioSegment = None
 _gtts_available = False
 
 try:
     from gtts import gTTS as GoogleTTS
-    from pydub import AudioSegment
+    from pydub import AudioSegment as AudioSegmentClass
+    import shutil
+
     gTTS = GoogleTTS
+    AudioSegment = AudioSegmentClass
     _gtts_available = True
+
+    # Configure pydub to find ffmpeg
+    # Check multiple possible locations
+    ffmpeg_paths = [
+        shutil.which('ffmpeg'),  # System PATH
+        '/opt/homebrew/bin/ffmpeg',  # Homebrew Apple Silicon
+        '/usr/local/bin/ffmpeg',  # Homebrew Intel
+        '/opt/local/bin/ffmpeg',  # MacPorts
+    ]
+
+    # Also check if running from a bundled app
+    if getattr(sys, 'frozen', False):
+        # Running in PyInstaller bundle
+        bundle_dir = Path(sys._MEIPASS)
+        ffmpeg_paths.insert(0, str(bundle_dir / 'ffmpeg'))
+
+    ffmpeg_found = None
+    for path in ffmpeg_paths:
+        if path and Path(path).exists():
+            ffmpeg_found = path
+            break
+
+    if ffmpeg_found:
+        AudioSegment.converter = ffmpeg_found
+        AudioSegment.ffmpeg = ffmpeg_found
+        AudioSegment.ffprobe = ffmpeg_found.replace('ffmpeg', 'ffprobe')
+        print(f"✓ Configured pydub to use ffmpeg at: {ffmpeg_found}")
+    else:
+        print("⚠️  Warning: ffmpeg not found in common locations")
+        print("   pydub will try to use system ffmpeg")
+
 except ImportError:
     pass
 
