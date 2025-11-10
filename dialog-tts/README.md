@@ -2,12 +2,36 @@
 
 대본의 화자 라벨(`A:`, `B:` 등)을 자동으로 인식하여 각 화자에게 서로 다른 음성을 적용하고, 하나의 오디오 파일로 병합하는 멀티 스피커 TTS 도구입니다.
 
+## 🚀 NEW: Enhanced Version Available!
+
+**`dialog_tts_enhanced.py`** 는 성능과 품질을 크게 향상시킨 버전입니다:
+- ⚡ **2-4배 빠른 합성** (병렬 처리)
+- 💾 **10-100배 빠른 재합성** (스마트 캐싱)
+- 🎚️ **프로페셔널 오디오 품질** (LUFS 정규화)
+- 🔄 **자동 재시도** (네트워크 오류 복구)
+- 📊 **실시간 진행률 표시**
+
+👉 **[성능 비교 및 사용법 보기](PERFORMANCE.md)**
+
+```bash
+# Enhanced 버전 사용 (추천!)
+python dialog_tts_enhanced.py \
+  --script samples/dialog.txt \
+  --voices A="SunHi,rate=180,pan=-0.3" B="InJoon,rate=170,pan=+0.3" \
+  --out podcast.wav \
+  --stereo \
+  --lufs -16 \
+  --workers 3
+```
+
 ## 주요 기능
 
 - **자동 화자 인식**: `화자명: 대사` 형식을 자동 파싱
 - **커스텀 화자 이름**: A, B를 원하는 이름(학생, 전문가 등)으로 매핑
 - **GUI 애플리케이션**: 사용하기 쉬운 그래픽 인터페이스 제공
+- **Microsoft Edge TTS**: 자연스러운 한국어 음성 (10개 보이스)
 - **다중 백엔드 지원**:
+  - Microsoft Edge TTS (권장, 최고 품질)
   - macOS 내장 TTS (PyObjC NSSpeechSynthesizer)
   - macOS `say` 명령어 (폴백)
   - Coqui XTTS v2 (선택적, 음성 클로닝 지원)
@@ -15,6 +39,9 @@
 - **음성 커스터마이징**: 속도, 볼륨, 음색 개별 조정
 - **지시문 지원**: `[silence=400]`, `[sfx=path.wav]` 등
 - **문장 분할**: 자연스러운 호흡을 위한 자동 문장 경계 처리
+- **🆕 병렬 합성**: 여러 라인을 동시에 처리 (2-4배 속도 향상)
+- **🆕 스마트 캐싱**: 반복 텍스트 자동 재사용
+- **🆕 LUFS 정규화**: 프로페셔널한 오디오 레벨링
 
 ## 설치
 
